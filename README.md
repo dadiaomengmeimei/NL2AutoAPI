@@ -271,8 +271,8 @@ review:
   port: 7860
   language: en          # UI language: en | zh
   auth_users: []        # Whitelist; empty = no auth
-  valid_path: ./output/base_staff/valid.jsonl
-  review_queue: ./output/base_staff/review_queue.jsonl
+  valid_path: ./output/my_table/valid.jsonl
+  review_queue: ./output/my_table/review_queue.jsonl
 ```
 
 Priority: **CLI args > Environment variables > config.yaml > Defaults**

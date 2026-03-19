@@ -122,12 +122,12 @@ def test_mode(router: RuntimeRouter, valid_path: str, num_tests: int = 10):
 
 
 def main():
-parser = argparse.ArgumentParser(description="NL2AutoAPI Runtime Server")
+    parser = argparse.ArgumentParser(description="NL2AutoAPI Runtime Server")
     parser.add_argument("--valid-path", required=True, help="Valid dataset path")
     parser.add_argument("--mode", choices=["interactive", "test", "online"], default="interactive")
     parser.add_argument("--num-tests", type=int, default=10, help="Test mode sample size")
     parser.add_argument("--review-queue", default="", help="审核队列路径，默认落在 valid.jsonl 同目录")
-    parser.add_argument("--table-name", default="base_staff", help="Table name for online mode")
+    parser.add_argument("--table-name", default="my_table", help="Table name for online mode")
     parser.add_argument("--table-desc", default="", help="Table description for online query generation")
     parser.add_argument("--num-queries", type=int, default=20, help="Online mode query count")
     parser.add_argument("--batch-size", type=int, default=5, help="Online mode batch size")

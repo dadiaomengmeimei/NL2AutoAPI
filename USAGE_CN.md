@@ -52,7 +52,7 @@ python main.py review --port 7860
 
 **启动前准备**：
 - 确保 `config.yaml` 已正确配置数据库连接和 LLM 接口
-- 确保 Schema JSON 文件已生成（如 `output/base_staff/schema.json`）
+- 确保 Schema JSON 文件已生成（如 `output/my_table/schema.json`）
 
 ---
 
@@ -309,10 +309,10 @@ LLM 判断三个维度：
     "name": "query_hire_date",
     "description": "查询指定员工的入职日期",
     "inputSchema": {"type": "object", "properties": {"name_formal": {"type": "string"}}},
-    "bound_sql": "SELECT hire_date FROM base_staff WHERE name_formal = :name_formal",
+    "bound_sql": "SELECT hire_date FROM my_table WHERE name_formal = :name_formal",
     "slot_mapping": {"name_formal": "name_formal"},
     "query_type": "exact_query",
-    "table": "base_staff"
+    "table": "my_table"
   },
   "reviewed_at": "2025-03-18T10:30:00",
   "reviewer": "admin",

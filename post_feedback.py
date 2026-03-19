@@ -38,7 +38,7 @@ def main():
     args = parser.parse_args()
     
     print(f"\n{'='*60}")
-print("🚀 NL2AutoAPI 事后反馈处理")
+    print("🚀 NL2AutoAPI 事后反馈处理")
     print(f"{'='*60}")
     
     # 初始化组件

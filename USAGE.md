@@ -60,7 +60,7 @@ Open `http://localhost:7860` in your browser.
 
 **Prerequisites:**
 - `config.yaml` with correct database and LLM configuration
-- Schema JSON file generated (e.g. `output/base_staff/schema.json`)
+- Schema JSON file generated (e.g. `output/my_table/schema.json`)
 
 **Language setting:** Set `review.language` in `config.yaml` to `en` (default) or `zh`.
 
@@ -356,8 +356,8 @@ All side-effect buttons use `threading.Lock`:
     "name": "query_hire_date",
     "description": "Query hire date for a specific employee",
     "inputSchema": {"type": "object", "properties": {"name_formal": {"type": "string"}}},
-    "bound_sql": "SELECT hire_date FROM base_staff WHERE name_formal = :name_formal",
-    "table": "base_staff"
+    "bound_sql": "SELECT hire_date FROM my_table WHERE name_formal = :name_formal",
+    "table": "my_table"
   },
   "reviewed_at": "2026-03-18T10:30:00",
   "reviewer": "admin",
@@ -375,8 +375,8 @@ review:
   port: 7860
   language: en           # UI language: "en" or "zh" (default: en)
   auth_users: []         # Whitelist usernames; empty = no auth
-  valid_path: ./output/base_staff/valid.jsonl
-  review_queue: ./output/base_staff/review_queue.jsonl
+  valid_path: ./output/my_table/valid.jsonl
+  review_queue: ./output/my_table/review_queue.jsonl
 ```
 
 ---
