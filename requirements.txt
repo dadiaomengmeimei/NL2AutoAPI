@@ -1,0 +1,11 @@
+# NL2AutoAPI dependencies
+
+# Core
+PyYAML>=6.0.2
+pymysql>=1.1.1
+pydantic>=2.11
+requests>=2.32
+sqlparse>=0.5
+
+# Review UI
+gradio>=4.0

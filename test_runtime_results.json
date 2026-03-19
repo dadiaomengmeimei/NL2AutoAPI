@@ -1,0 +1,166 @@
+{
+  "/runtime/resolve": [
+    {
+      "query": "帮我查一下张三的入职日期",
+      "status": "error",
+      "route": "none",
+      "api_name": "exact_query_base_staff_emplid",
+      "elapsed": 6.09,
+      "error": "missing_slots"
+    },
+    {
+      "query": "查询工号为10086的员工信息",
+      "status": "error",
+      "route": "none",
+      "api_name": "exact_query_base_staff_emplid",
+      "elapsed": 3.99,
+      "error": "没有数据库连接"
+    },
+    {
+      "query": "帮我查一下李四的办公地点",
+      "status": "error",
+      "route": "none",
+      "api_name": "exact_query_base_staff_emplid",
+      "elapsed": 5.87,
+      "error": "missing_slots"
+    },
+    {
+      "query": "帮我看看王五的部门是什么",
+      "status": "error",
+      "route": "none",
+      "api_name": "exact_query_base_staff_name_ac",
+      "elapsed": 8.16,
+      "error": "没有数据库连接"
+    },
+    {
+      "query": "帮我看看员工编号为20001的正式姓名和显示姓名",
+      "status": "error",
+      "route": "none",
+      "api_name": "exact_query_base_staff_emplid",
+      "elapsed": 4.56,
+      "error": "没有数据库连接"
+    },
+    {
+      "query": "统计一下在职员工有多少人",
+      "status": "error",
+      "route": "none",
+      "api_name": "group_distribution_base_staff_hr_status",
+      "elapsed": 5.19,
+      "error": "没有数据库连接"
+    },
+    {
+      "query": "统计每个部门的在职员工人数",
+      "status": "error",
+      "route": "none",
+      "api_name": "group_distribution_base_staff_hr_status",
+      "elapsed": 4.89,
+      "error": "没有数据库连接"
+    },
+    {
+      "query": "帮我看看2024年入职的员工有多少人",
+      "status": "error",
+      "route": "none",
+      "api_name": null,
+      "elapsed": 4.18,
+      "error": "no_api_candidates"
+    },
+    {
+      "query": "查一下深圳办公区有哪些员工",
+      "status": "error",
+      "route": "none",
+      "api_name": "list_no_filter_base_staff_emplid",
+      "elapsed": 5.35,
+      "error": "没有数据库连接"
+    },
+    {
+      "query": "有没有叫赵六的员工？帮我查一下他的工号和入职时间",
+      "status": "error",
+      "route": "none",
+      "api_name": "exact_query_base_staff_name_ac",
+      "elapsed": 5.12,
+      "error": "missing_slots"
+    }
+  ],
+  "/runtime/resolve-with-generate": [
+    {
+      "query": "帮我查一下张三的入职日期",
+      "status": "error",
+      "route": "none",
+      "api_name": "exact_query_base_staff_name_ac",
+      "elapsed": 8.96,
+      "error": "missing_slots"
+    },
+    {
+      "query": "查询工号为10086的员工信息",
+      "status": null,
+      "route": null,
+      "api_name": null,
+      "elapsed": 0.78,
+      "error": "Connection refused: http://127.0.0.1:7862/runtime/resolve-with-generate"
+    },
+    {
+      "query": "帮我查一下李四的办公地点",
+      "status": null,
+      "route": null,
+      "api_name": null,
+      "elapsed": 0.0,
+      "error": "Connection refused: http://127.0.0.1:7862/runtime/resolve-with-generate"
+    },
+    {
+      "query": "帮我看看王五的部门是什么",
+      "status": null,
+      "route": null,
+      "api_name": null,
+      "elapsed": 0.0,
+      "error": "Connection refused: http://127.0.0.1:7862/runtime/resolve-with-generate"
+    },
+    {
+      "query": "帮我看看员工编号为20001的正式姓名和显示姓名",
+      "status": null,
+      "route": null,
+      "api_name": null,
+      "elapsed": 0.0,
+      "error": "Connection refused: http://127.0.0.1:7862/runtime/resolve-with-generate"
+    },
+    {
+      "query": "统计一下在职员工有多少人",
+      "status": null,
+      "route": null,
+      "api_name": null,
+      "elapsed": 0.0,
+      "error": "Connection refused: http://127.0.0.1:7862/runtime/resolve-with-generate"
+    },
+    {
+      "query": "统计每个部门的在职员工人数",
+      "status": null,
+      "route": null,
+      "api_name": null,
+      "elapsed": 0.0,
+      "error": "Connection refused: http://127.0.0.1:7862/runtime/resolve-with-generate"
+    },
+    {
+      "query": "帮我看看2024年入职的员工有多少人",
+      "status": null,
+      "route": null,
+      "api_name": null,
+      "elapsed": 0.0,
+      "error": "Connection refused: http://127.0.0.1:7862/runtime/resolve-with-generate"
+    },
+    {
+      "query": "查一下深圳办公区有哪些员工",
+      "status": null,
+      "route": null,
+      "api_name": null,
+      "elapsed": 0.0,
+      "error": "Connection refused: http://127.0.0.1:7862/runtime/resolve-with-generate"
+    },
+    {
+      "query": "有没有叫赵六的员工？帮我查一下他的工号和入职时间",
+      "status": null,
+      "route": null,
+      "api_name": null,
+      "elapsed": 0.0,
+      "error": "Connection refused: http://127.0.0.1:7862/runtime/resolve-with-generate"
+    }
+  ]
+}

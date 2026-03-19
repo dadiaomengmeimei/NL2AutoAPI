@@ -1,0 +1,66 @@
+{
+  "db_id": "base_staff",
+  "tables": {
+    "base_staff": {
+      "comment": "员工基础表",
+      "fields": {
+        "staff_id": {
+          "name": "staff_id",
+          "type": "BIGINT",
+          "is_primary": true,
+          "is_nullable": false,
+          "comment": "员工 ID"
+        },
+        "name": {
+          "name": "name",
+          "type": "VARCHAR(100)",
+          "is_primary": false,
+          "is_nullable": false,
+          "comment": "员工姓名"
+        },
+        "dept_id": {
+          "name": "dept_id",
+          "type": "BIGINT",
+          "is_primary": false,
+          "is_nullable": true,
+          "comment": "部门 ID"
+        },
+        "gender": {
+          "name": "gender",
+          "type": "VARCHAR(10)",
+          "is_primary": false,
+          "is_nullable": true,
+          "comment": "性别（M/F）"
+        },
+        "salary": {
+          "name": "salary",
+          "type": "DECIMAL(10,2)",
+          "is_primary": false,
+          "is_nullable": true,
+          "comment": "薪资"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "DATETIME",
+          "is_primary": false,
+          "is_nullable": true,
+          "comment": "创建时间"
+        },
+        "location": {
+          "name": "location",
+          "type": "VARCHAR(100)",
+          "is_primary": false,
+          "is_nullable": true,
+          "comment": "员工所在地"
+        },
+        "status": {
+          "name": "status",
+          "type": "VARCHAR(20)",
+          "is_primary": false,
+          "is_nullable": true,
+          "comment": "员工状态（在职/离职）"
+        }
+      }
+    }
+  }
+}
