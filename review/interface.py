@@ -1788,82 +1788,137 @@ def create_interface(self):
         print("Gradio not available, cannot create interface")
         return None
     
-    # Custom CSS — lightweight, airy design
+    # Custom CSS — dark mode, sleek & modern
     _custom_css = """
     /* ── Global layout ── */
     .gradio-container {
-        max-width: 1280px !important;
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', 'Helvetica Neue', Arial, sans-serif !important;
+        max-width: 1200px !important;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif !important;
+        background: #0f1117 !important;
+        color: #e2e8f0 !important;
     }
+    body, .dark { background: #0f1117 !important; }
 
-    /* ── Buttons: pill-shaped, flat, subtle shadow ── */
+    /* ── Buttons: rounded, cyan accent ── */
     .gr-button {
-        border-radius: 20px !important;
+        border-radius: 22px !important;
         font-weight: 500 !important;
-        font-size: 0.85rem !important;
-        padding: 6px 18px !important;
-        letter-spacing: 0.02em !important;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.06) !important;
-        transition: all 0.2s ease !important;
-        border: 1px solid rgba(0,0,0,0.06) !important;
+        font-size: 0.84rem !important;
+        padding: 6px 20px !important;
+        letter-spacing: 0.015em !important;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.3) !important;
+        transition: all 0.25s cubic-bezier(.4,0,.2,1) !important;
+        border: 1px solid rgba(99,179,237,0.15) !important;
+        background: #1a1d2e !important;
+        color: #cbd5e1 !important;
     }
-    .gr-button:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.10) !important; transform: translateY(-1px) !important; }
+    .gr-button:hover {
+        box-shadow: 0 3px 14px rgba(56,189,248,0.2) !important;
+        transform: translateY(-1px) !important;
+        border-color: rgba(56,189,248,0.4) !important;
+        color: #f1f5f9 !important;
+    }
     .gr-button.primary {
-        background: #5b6abf !important;
+        background: linear-gradient(135deg, #6366f1 0%, #818cf8 50%, #38bdf8 100%) !important;
         color: #fff !important;
         border: none !important;
+        box-shadow: 0 2px 10px rgba(99,102,241,0.35) !important;
     }
-    .gr-button.primary:hover { background: #4a59b0 !important; }
+    .gr-button.primary:hover {
+        background: linear-gradient(135deg, #4f46e5 0%, #6366f1 50%, #0ea5e9 100%) !important;
+        box-shadow: 0 4px 20px rgba(99,102,241,0.45) !important;
+    }
     .gr-button.stop {
-        background: #fff !important;
-        color: #e74c5e !important;
-        border: 1px solid #e74c5e !important;
+        background: #1a1d2e !important;
+        color: #f87171 !important;
+        border: 1px solid rgba(248,113,113,0.3) !important;
     }
-    .gr-button.stop:hover { background: #fef2f2 !important; }
+    .gr-button.stop:hover { background: #2a1520 !important; border-color: #f87171 !important; }
 
-    /* ── Panels & cards ── */
+    /* ── Panels & cards: dark glass ── */
     .gr-panel, .gr-box, .gr-form {
-        border-radius: 14px !important;
-        border: 1px solid #eef0f4 !important;
-        box-shadow: 0 1px 4px rgba(0,0,0,0.03) !important;
+        border-radius: 16px !important;
+        border: 1px solid rgba(148,163,184,0.08) !important;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.25) !important;
+        background: rgba(26,29,46,0.85) !important;
+        backdrop-filter: blur(12px) !important;
     }
 
-    /* ── Inputs: slimmer, rounder ── */
+    /* ── Inputs: dark, rounded ── */
     .gr-input, .gr-text-input, textarea, input[type="text"] {
         border-radius: 10px !important;
-        border: 1px solid #e2e5eb !important;
-        font-size: 0.88rem !important;
+        border: 1px solid rgba(148,163,184,0.12) !important;
+        font-size: 0.87rem !important;
         padding: 8px 12px !important;
+        background: #161825 !important;
+        color: #e2e8f0 !important;
+        transition: border-color 0.2s ease !important;
+    }
+    .gr-input:focus, .gr-text-input:focus, textarea:focus, input[type="text"]:focus {
+        border-color: #6366f1 !important;
+        box-shadow: 0 0 0 3px rgba(99,102,241,0.15) !important;
+        outline: none !important;
     }
 
-    /* ── Tabs: minimal underline style ── */
+    /* ── Tabs: glowing underline ── */
+    .tabs > .tab-nav {
+        background: transparent !important;
+        border-bottom: 1px solid rgba(148,163,184,0.1) !important;
+    }
     .tabs > .tab-nav > button {
-        font-size: 0.85rem !important;
+        font-size: 0.84rem !important;
         font-weight: 500 !important;
-        padding: 8px 16px !important;
-        border-radius: 8px 8px 0 0 !important;
+        padding: 7px 18px !important;
+        border-radius: 10px 10px 0 0 !important;
         letter-spacing: 0.01em !important;
+        color: #94a3b8 !important;
+        transition: all 0.2s ease !important;
+        background: transparent !important;
+    }
+    .tabs > .tab-nav > button:hover { color: #cbd5e1 !important; }
+    .tabs > .tab-nav > button.selected {
+        color: #818cf8 !important;
+        border-bottom: 2px solid #6366f1 !important;
+        background: rgba(99,102,241,0.06) !important;
     }
 
-    /* ── Accordion: lighter headers ── */
+    /* ── Accordion ── */
     .gr-accordion > .label-wrap {
-        font-size: 0.88rem !important;
+        font-size: 0.87rem !important;
         font-weight: 500 !important;
-        color: #4a5568 !important;
+        color: #cbd5e1 !important;
     }
 
-    /* ── Tables: compact rows ── */
-    table { font-size: 0.84rem !important; }
-    table th { font-weight: 600 !important; color: #4a5568 !important; }
-    table td { padding: 6px 10px !important; }
+    /* ── Tables: dark rows ── */
+    table { font-size: 0.83rem !important; color: #cbd5e1 !important; }
+    table th {
+        font-weight: 600 !important;
+        color: #818cf8 !important;
+        background: rgba(99,102,241,0.08) !important;
+        padding: 8px 10px !important;
+        border-bottom: 1px solid rgba(99,102,241,0.15) !important;
+    }
+    table td {
+        padding: 6px 10px !important;
+        border-bottom: 1px solid rgba(148,163,184,0.06) !important;
+    }
+    table tr:hover td { background: rgba(99,102,241,0.05) !important; }
 
     /* ── Markdown inside UI ── */
-    .prose h2 { font-size: 1.15rem !important; font-weight: 600 !important; color: #2d3748 !important; }
-    .prose h3 { font-size: 1rem !important; font-weight: 600 !important; color: #4a5568 !important; }
-    .prose h4 { font-size: 0.92rem !important; font-weight: 600 !important; color: #718096 !important; }
+    .prose h2 { font-size: 1.12rem !important; font-weight: 600 !important; color: #f1f5f9 !important; }
+    .prose h3 { font-size: 0.98rem !important; font-weight: 600 !important; color: #cbd5e1 !important; }
+    .prose h4 { font-size: 0.90rem !important; font-weight: 600 !important; color: #94a3b8 !important; }
+    .prose p, .prose li { color: #cbd5e1 !important; }
+    .prose code { background: #1e2033 !important; color: #818cf8 !important; border-radius: 4px !important; padding: 1px 5px !important; }
+
+    /* ── Labels & text ── */
+    label, .gr-check-radio label, .gr-input-label {
+        color: #94a3b8 !important;
+    }
+    span, p { color: #cbd5e1; }
 
     /* ── Subtitle ── */
-    .subtitle { opacity: 0.65; font-size: 0.85rem !important; margin-top: -8px !important; }
+    .subtitle { opacity: 0.45; font-size: 0.84rem !important; margin-top: -8px !important; color: #64748b !important; }
 
     /* ── Hide footer ── */
     footer { display: none !important; }
@@ -1871,9 +1926,40 @@ def create_interface(self):
     /* ── Spacing tweaks ── */
     .gr-padded { padding: 12px !important; }
     .gap { gap: 10px !important; }
+
+    /* ── Scrollbar: dark, slim ── */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #0f1117; }
+    ::-webkit-scrollbar-thumb { background: #2d3148; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #4a5073; }
+
+    /* ── Dropdown & select ── */
+    select, .gr-dropdown {
+        background: #161825 !important;
+        color: #e2e8f0 !important;
+        border: 1px solid rgba(148,163,184,0.12) !important;
+        border-radius: 10px !important;
+    }
+
+    /* ── Chatbot / output areas ── */
+    .chatbot, .output-markdown, .output-text {
+        background: #161825 !important;
+        color: #e2e8f0 !important;
+        border-radius: 12px !important;
+    }
+
+    /* ── Override Gradio default white backgrounds ── */
+    .block, .wrap, .contain {
+        background: transparent !important;
+    }
+    .gr-group {
+        background: rgba(26,29,46,0.6) !important;
+        border: 1px solid rgba(148,163,184,0.06) !important;
+        border-radius: 14px !important;
+    }
     """
 
-    with gr.Blocks(title="NL2AutoAPI Workbench", css=_custom_css, theme=gr.themes.Soft()) as demo:
+    with gr.Blocks(title="NL2AutoAPI Workbench", css=_custom_css, theme=gr.themes.Base()) as demo:
         gr.Markdown(t("app_title"))
         gr.Markdown(t("app_subtitle"), elem_classes=["subtitle"])
 
