@@ -14,12 +14,12 @@ _current_lang = "en"
 _TRANSLATIONS: dict[str, dict[str, str]] = {
     # ── Global ──
     "app_title": {
-"zh": "# 🛠️ NL2AutoAPI 数据工坊",
-"en": "# 🛠️ NL2AutoAPI Data Workbench",
+"zh": "# NL2AutoAPI",
+"en": "# NL2AutoAPI",
     },
     "app_subtitle": {
-        "zh": "*完整流程: Schema → Pre-build → 数据校验 → 人工审核 → 运行时查询*",
-        "en": "*Full pipeline: Schema → Pre-build → Validation → Review → Runtime Query*",
+        "zh": "*Schema › Pre-build › 校验 › 审核 › 运行时查询*",
+        "en": "*Schema › Pre-build › Validation › Review › Runtime Query*",
     },
     "reviewer": {
         "zh": "审核人",
@@ -35,57 +35,57 @@ _TRANSLATIONS: dict[str, dict[str, str]] = {
     },
 
     # ── Tab names ──
-    "tab_schema": {"zh": "1️⃣ Schema", "en": "1️⃣ Schema"},
-    "tab_dataset": {"zh": "2️⃣ 数据集", "en": "2️⃣ Dataset"},
-    "tab_validation": {"zh": "3️⃣ 数据校验", "en": "3️⃣ Validation"},
-    "tab_runtime": {"zh": "4️⃣ 运行时查询", "en": "4️⃣ Runtime Query"},
-    "tab_review_queue": {"zh": "5️⃣ 审核队列", "en": "5️⃣ Review Queue"},
-    "tab_version": {"zh": "6️⃣ 版本管理", "en": "6️⃣ Version History"},
-    "tab_stats": {"zh": "7️⃣ 统计", "en": "7️⃣ Statistics"},
+    "tab_schema": {"zh": "Schema", "en": "Schema"},
+    "tab_dataset": {"zh": "数据集", "en": "Dataset"},
+    "tab_validation": {"zh": "校验", "en": "Validation"},
+    "tab_runtime": {"zh": "查询", "en": "Query"},
+    "tab_review_queue": {"zh": "审核", "en": "Review"},
+    "tab_version": {"zh": "版本", "en": "Versions"},
+    "tab_stats": {"zh": "统计", "en": "Stats"},
 
     # ── Schema tab ──
     "schema_title": {
-        "zh": "## Schema 浏览 & 自动修正",
-        "en": "## Schema Browser & Auto-Fix",
+        "zh": "## Schema 管理",
+        "en": "## Schema Management",
     },
     "schema_desc": {
         "zh": "浏览/编辑 Schema、自动修正字段描述、裁剪无用列、运行 Pre-build 生成初始数据集。",
         "en": "Browse/edit Schema, auto-fix field descriptions, prune unused columns, run Pre-build to generate initial dataset.",
     },
     "schema_gen_accordion": {
-        "zh": "🗄️ 从数据库生成 Schema",
-        "en": "🗄️ Generate Schema from Database",
+        "zh": "从数据库生成",
+        "en": "Generate from Database",
     },
     "schema_gen_desc": {
         "zh": "从数据库拉取表结构，自动生成 Schema JSON。",
         "en": "Pull table structure from database and auto-generate Schema JSON.",
     },
     "btn_gen_schema": {
-        "zh": "🗄️ 从数据库生成 Schema",
-        "en": "🗄️ Generate Schema from DB",
+        "zh": "生成 Schema",
+        "en": "Generate Schema",
     },
     "schema_editor_accordion": {
-        "zh": "📝 Schema 编辑器",
-        "en": "📝 Schema Editor",
+        "zh": "编辑器",
+        "en": "Editor",
     },
     "schema_editor_label": {
         "zh": "Schema JSON（可编辑）",
         "en": "Schema JSON (editable)",
     },
-    "btn_reload": {"zh": "🔄 重新加载", "en": "🔄 Reload"},
-    "btn_save": {"zh": "💾 保存", "en": "💾 Save"},
+    "btn_reload": {"zh": "重新加载", "en": "Reload"},
+    "btn_save": {"zh": "保存", "en": "Save"},
     "field_mgmt_accordion": {
-        "zh": "🔧 字段管理 & 自动修正",
-        "en": "🔧 Field Management & Auto-Fix",
+        "zh": "字段管理",
+        "en": "Field Management",
     },
     "field_ops_title": {"zh": "#### 字段操作", "en": "#### Field Operations"},
     "field_del_label": {"zh": "选择要删除的字段", "en": "Select field to delete"},
-    "btn_delete_field": {"zh": "🗑️ 删除字段", "en": "🗑️ Delete Field"},
+    "btn_delete_field": {"zh": "删除字段", "en": "Delete Field"},
     "smart_prune_desc": {
         "zh": "**智能裁剪** — LLM 自动识别并移除内部/系统字段（如 created_at, etl_flag）",
         "en": "**Smart Prune** — LLM auto-identifies and removes internal/system fields (e.g. created_at, etl_flag)",
     },
-    "btn_smart_prune": {"zh": "✂️ 智能裁剪", "en": "✂️ Smart Prune"},
+    "btn_smart_prune": {"zh": "智能裁剪", "en": "Smart Prune"},
     "autofix_desc_title": {"zh": "#### 自动修正描述", "en": "#### Auto-Fix Descriptions"},
     "autofix_desc_hint": {
         "zh": "探索循环: 生成查询 → SQL → 执行 → 校验 → 优化描述",
@@ -96,25 +96,25 @@ _TRANSLATIONS: dict[str, dict[str, str]] = {
         "en": "**Global Auto-Fix** — Fix all fields",
     },
     "rounds_label": {"zh": "轮次", "en": "Rounds"},
-    "btn_global_autofix": {"zh": "🔧 全局自动修正", "en": "🔧 Global Auto-Fix"},
+    "btn_global_autofix": {"zh": "全局修正", "en": "Global Auto-Fix"},
     "single_field_autofix_title": {"zh": "**单字段自动修正**", "en": "**Single Field Auto-Fix**"},
     "field_select_label": {"zh": "选择字段", "en": "Select field"},
-    "btn_field_autofix": {"zh": "🔧 单字段自动修正", "en": "🔧 Single Field Auto-Fix"},
+    "btn_field_autofix": {"zh": "单字段修正", "en": "Field Auto-Fix"},
     "autofix_log_title": {"zh": "#### 自动修正进度日志", "en": "#### Auto-Fix Progress Log"},
     "autofix_log_label": {"zh": "进度日志", "en": "Progress log"},
     "prebuild_accordion": {
-        "zh": "🚀 Pre-build 数据生成",
-        "en": "🚀 Pre-build Data Generation",
+        "zh": "Pre-build",
+        "en": "Pre-build",
     },
     "prebuild_desc": {
         "zh": "基于 Schema 自动生成初始 Query-SQL 数据集，写入 `valid.jsonl`。请确保先完成 Auto-Fix 审核。",
         "en": "Auto-generate initial Query-SQL dataset from Schema into `valid.jsonl`. Make sure Auto-Fix review is done first.",
     },
-    "btn_prebuild": {"zh": "🚀 运行 Pre-build", "en": "🚀 Run Pre-build"},
+    "btn_prebuild": {"zh": "运行 Pre-build", "en": "Run Pre-build"},
     "prebuild_log_label": {"zh": "Pre-build 日志", "en": "Pre-build Log"},
 
     # ── Dataset tab ──
-    "dataset_title": {"zh": "## Valid 数据集浏览", "en": "## Valid Dataset Browser"},
+    "dataset_title": {"zh": "## 数据集", "en": "## Dataset"},
     "dataset_desc": {
         "zh": "浏览、编辑或删除 `valid.jsonl` 中的记录。",
         "en": "Browse, edit, or delete records in `valid.jsonl`.",
@@ -130,8 +130,8 @@ _TRANSLATIONS: dict[str, dict[str, str]] = {
     "api_desc_label": {"zh": "描述", "en": "Description"},
     "sql_label": {"zh": "SQL", "en": "SQL"},
     "api_schema_json_label": {"zh": "API Schema JSON", "en": "API Schema JSON"},
-    "btn_save_edit": {"zh": "💾 保存修改", "en": "💾 Save Changes"},
-    "btn_delete_record": {"zh": "🗑️ 删除记录", "en": "🗑️ Delete Record"},
+    "btn_save_edit": {"zh": "保存修改", "en": "Save Changes"},
+    "btn_delete_record": {"zh": "删除记录", "en": "Delete Record"},
     "schema_feedback_accordion_edit": {
         "zh": "🔔 Schema 反馈（修改 SQL 时自动分析）",
         "en": "🔔 Schema Feedback (auto-analyzed on SQL edit)",
@@ -140,29 +140,29 @@ _TRANSLATIONS: dict[str, dict[str, str]] = {
         "zh": "_保存修改后，系统会自动分析 SQL 变更并提供 Schema 字段描述更新建议。_",
         "en": "_After saving, the system will auto-analyze SQL/Query changes and suggest Schema field description updates._",
     },
-    "btn_apply_suggestion": {"zh": "✅ 应用建议", "en": "✅ Apply Suggestions"},
-    "btn_dismiss_suggestion": {"zh": "↩️ 撤销", "en": "↩️ Dismiss"},
-    "btn_prev_page": {"zh": "⬅️ 上一页", "en": "⬅️ Previous"},
-    "btn_next_page": {"zh": "➡️ 下一页", "en": "➡️ Next"},
-    "btn_refresh": {"zh": "🔄 刷新", "en": "🔄 Refresh"},
+    "btn_apply_suggestion": {"zh": "应用建议", "en": "Apply"},
+    "btn_dismiss_suggestion": {"zh": "忽略", "en": "Dismiss"},
+    "btn_prev_page": {"zh": "上一页", "en": "Previous"},
+    "btn_next_page": {"zh": "下一页", "en": "Next"},
+    "btn_refresh": {"zh": "刷新", "en": "Refresh"},
     "table_headers": {
         "zh": ["#", "API名称", "查询", "SQL", "描述", "来源"],
         "en": ["#", "API Name", "Query", "SQL", "Description", "Source"],
     },
 
     # ── Validation tab ──
-    "validation_title": {"zh": "## 基于 SQL 的数据校验", "en": "## SQL-Based Data Validation"},
+    "validation_title": {"zh": "## 数据校验", "en": "## Validation"},
     "validation_desc": {
         "zh": "自动复审 → 修正 SQL → 通过 / 跳过 / 拒绝",
         "en": "Auto-review → Fix SQL → Approve / Skip / Reject",
     },
     "ops_title": {"zh": "### 操作", "en": "### Actions"},
-    "btn_concretize": {"zh": "✨ 具体化 Query", "en": "✨ Concretize Query"},
-    "btn_auto_sql": {"zh": "🤖 自动生成 SQL", "en": "🤖 Auto-Generate SQL"},
-    "btn_auto_review": {"zh": "🧠 自动复审（基于当前 SQL）", "en": "🧠 Auto-Review (current SQL)"},
-    "btn_approve": {"zh": "✅ 通过", "en": "✅ Approve"},
-    "btn_skip": {"zh": "⏭️ 跳过", "en": "⏭️ Skip"},
-    "btn_reject": {"zh": "❌ 拒绝", "en": "❌ Reject"},
+    "btn_concretize": {"zh": "具体化", "en": "Concretize"},
+    "btn_auto_sql": {"zh": "生成 SQL", "en": "Generate SQL"},
+    "btn_auto_review": {"zh": "自动复审", "en": "Auto-Review"},
+    "btn_approve": {"zh": "通过", "en": "Approve"},
+    "btn_skip": {"zh": "跳过", "en": "Skip"},
+    "btn_reject": {"zh": "拒绝", "en": "Reject"},
     "validation_hint": {
         "zh": "提示：使用「具体化 Query」将抽象查询变具体，或使用「自动生成 SQL」从查询自动起草 SQL。",
         "en": "Tip: Use *Concretize Query* to make abstract queries concrete, or *Auto-Generate SQL* to draft SQL from the query.",
@@ -181,7 +181,7 @@ _TRANSLATIONS: dict[str, dict[str, str]] = {
     },
 
     # ── Runtime Query tab ──
-    "runtime_title": {"zh": "## 运行时查询操场", "en": "## Runtime Query Playground"},
+    "runtime_title": {"zh": "## 运行时查询", "en": "## Runtime Query"},
     "runtime_desc": {
         "zh": "将单条查询走完整运行时流程（路由 → 槽位填充 → SQL 执行 → 结果校验）。",
         "en": "Run a single query through the full runtime pipeline (Route → Slot Fill → SQL Execute → Result Verify).",
@@ -191,26 +191,26 @@ _TRANSLATIONS: dict[str, dict[str, str]] = {
         "en": "Runtime query unavailable. Please check `runtime_query_ui.py`.",
     },
     "advanced_settings": {"zh": "高级设置（仅高级用户）", "en": "Advanced Settings (power users only)"},
-    "btn_run": {"zh": "▶️ 运行", "en": "▶️ Run"},
+    "btn_run": {"zh": "运行", "en": "Run"},
     "status_label": {"zh": "状态", "en": "Status"},
     "generated_sql_label": {"zh": "生成的 SQL", "en": "Generated SQL"},
     "record_json_label": {"zh": "记录 JSON", "en": "Record JSON"},
     "note_label": {"zh": "备注", "en": "Note"},
     "step1_title": {"zh": "### 第一步 — 编辑 Query / SQL", "en": "### Step 1 — Edit Query / SQL"},
     "manual_sql_label": {"zh": "手动 SQL（可编辑）", "en": "Manual SQL (editable)"},
-    "btn_fill_from_record": {"zh": "📝 从记录回填", "en": "📝 Fill from Record"},
-    "btn_auto_review_short": {"zh": "🧠 自动复审", "en": "🧠 Auto-Review"},
-    "btn_test_query_sql": {"zh": "🧪 测试 Query + SQL", "en": "🧪 Test Query + SQL"},
+    "btn_fill_from_record": {"zh": "回填", "en": "Fill"},
+    "btn_auto_review_short": {"zh": "自动复审", "en": "Auto-Review"},
+    "btn_test_query_sql": {"zh": "测试", "en": "Test"},
     "step2_title": {"zh": "### 第二步 — 导入到 valid.jsonl", "en": "### Step 2 — Import to valid.jsonl"},
-    "btn_import_valid": {"zh": "📥 导入到 Valid", "en": "📥 Import to Valid"},
+    "btn_import_valid": {"zh": "导入 Valid", "en": "Import to Valid"},
     "import_result_label": {"zh": "导入结果", "en": "Import Result"},
     "input_schema_inferred_label": {"zh": "输入参数（从 SQL 推断）", "en": "Input Schema (inferred from SQL)"},
 
     # ── Review Queue tab ──
-    "review_queue_title": {"zh": "## 审核队列", "en": "## Review Queue"},
+    "review_queue_title": {"zh": "## 审核", "en": "## Review"},
     "review_queue_desc": {
-        "zh": "运行时纠错 & Schema 扩展任务，等待人工审核。",
-        "en": "Runtime correction & Schema expansion tasks awaiting review.",
+        "zh": "运行时纠错和扩展任务。",
+        "en": "Runtime correction & expansion tasks.",
     },
     "sql_template_label": {"zh": "SQL（模板，可编辑）", "en": "SQL (template, editable)"},
     "invoked_sql_label": {
@@ -220,27 +220,27 @@ _TRANSLATIONS: dict[str, dict[str, str]] = {
     "task_instruction_label": {"zh": "任务说明 / 区分指令", "en": "Task Instruction / Distinction"},
     "review_ops_title": {"zh": "### 审核操作", "en": "### Review Actions"},
     "comment_label": {"zh": "审核意见", "en": "Review Comment"},
-    "btn_next": {"zh": "⏭️ 下一个", "en": "⏭️ Next"},
+    "btn_next": {"zh": "下一个", "en": "Next"},
     "review_queue_hint": {
         "zh": "提示：先具体化抽象查询，然后生成 SQL 或自动复审。",
         "en": "Tip: Concretize abstract queries first, then generate SQL or auto-review.",
     },
 
     # ── Version History tab ──
-    "version_title": {"zh": "## 版本历史（Binlog）", "en": "## Version History (Binlog)"},
+    "version_title": {"zh": "## 版本历史", "en": "## Version History"},
     "version_desc": {
         "zh": "查看操作日志，支持按时间点恢复数据集。",
         "en": "View operation logs and restore datasets to a specific point in time.",
     },
     "binlog_detail_title": {"zh": "### 操作日志详情", "en": "### Operation Log Details"},
     "dataset_name_label": {"zh": "数据集", "en": "Dataset"},
-    "btn_view_log": {"zh": "查看日志", "en": "View Log"},
+    "btn_view_log": {"zh": "查看", "en": "View"},
     "restore_title": {"zh": "### 按时间点恢复", "en": "### Restore by Timestamp"},
     "restore_ts_label": {
         "zh": "选择恢复时间点",
         "en": "Select restore point",
     },
-    "btn_restore": {"zh": "⏪ 恢复", "en": "⏪ Restore"},
+    "btn_restore": {"zh": "恢复", "en": "Restore"},
 
     # ── Statistics tab ──
     "stats_pending_validation": {"zh": "待校验记录数", "en": "Pending validation records"},

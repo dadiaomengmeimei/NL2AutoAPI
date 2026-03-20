@@ -1788,14 +1788,89 @@ def create_interface(self):
         print("Gradio not available, cannot create interface")
         return None
     
-    # Custom CSS for a cleaner, modern look
+    # Custom CSS — lightweight, airy design
     _custom_css = """
-    .gradio-container { max-width: 1400px !important; }
-    .gr-button { border-radius: 8px !important; font-weight: 500 !important; }
-    .gr-button.primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important; }
-    .gr-button.stop { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%) !important; }
-    .gr-panel { border-radius: 12px !important; }
+    /* ── Global layout ── */
+    .gradio-container {
+        max-width: 1280px !important;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', 'Helvetica Neue', Arial, sans-serif !important;
+    }
+
+    /* ── Buttons: pill-shaped, flat, subtle shadow ── */
+    .gr-button {
+        border-radius: 20px !important;
+        font-weight: 500 !important;
+        font-size: 0.85rem !important;
+        padding: 6px 18px !important;
+        letter-spacing: 0.02em !important;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.06) !important;
+        transition: all 0.2s ease !important;
+        border: 1px solid rgba(0,0,0,0.06) !important;
+    }
+    .gr-button:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.10) !important; transform: translateY(-1px) !important; }
+    .gr-button.primary {
+        background: #5b6abf !important;
+        color: #fff !important;
+        border: none !important;
+    }
+    .gr-button.primary:hover { background: #4a59b0 !important; }
+    .gr-button.stop {
+        background: #fff !important;
+        color: #e74c5e !important;
+        border: 1px solid #e74c5e !important;
+    }
+    .gr-button.stop:hover { background: #fef2f2 !important; }
+
+    /* ── Panels & cards ── */
+    .gr-panel, .gr-box, .gr-form {
+        border-radius: 14px !important;
+        border: 1px solid #eef0f4 !important;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.03) !important;
+    }
+
+    /* ── Inputs: slimmer, rounder ── */
+    .gr-input, .gr-text-input, textarea, input[type="text"] {
+        border-radius: 10px !important;
+        border: 1px solid #e2e5eb !important;
+        font-size: 0.88rem !important;
+        padding: 8px 12px !important;
+    }
+
+    /* ── Tabs: minimal underline style ── */
+    .tabs > .tab-nav > button {
+        font-size: 0.85rem !important;
+        font-weight: 500 !important;
+        padding: 8px 16px !important;
+        border-radius: 8px 8px 0 0 !important;
+        letter-spacing: 0.01em !important;
+    }
+
+    /* ── Accordion: lighter headers ── */
+    .gr-accordion > .label-wrap {
+        font-size: 0.88rem !important;
+        font-weight: 500 !important;
+        color: #4a5568 !important;
+    }
+
+    /* ── Tables: compact rows ── */
+    table { font-size: 0.84rem !important; }
+    table th { font-weight: 600 !important; color: #4a5568 !important; }
+    table td { padding: 6px 10px !important; }
+
+    /* ── Markdown inside UI ── */
+    .prose h2 { font-size: 1.15rem !important; font-weight: 600 !important; color: #2d3748 !important; }
+    .prose h3 { font-size: 1rem !important; font-weight: 600 !important; color: #4a5568 !important; }
+    .prose h4 { font-size: 0.92rem !important; font-weight: 600 !important; color: #718096 !important; }
+
+    /* ── Subtitle ── */
+    .subtitle { opacity: 0.65; font-size: 0.85rem !important; margin-top: -8px !important; }
+
+    /* ── Hide footer ── */
     footer { display: none !important; }
+
+    /* ── Spacing tweaks ── */
+    .gr-padded { padding: 12px !important; }
+    .gap { gap: 10px !important; }
     """
 
     with gr.Blocks(title="NL2AutoAPI Workbench", css=_custom_css, theme=gr.themes.Soft()) as demo:
