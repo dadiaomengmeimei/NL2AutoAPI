@@ -1,0 +1,64 @@
+# text2API Example Configuration
+# Priority: CLI args > Environment variables > Config file
+# Copy this file to config.yaml and fill in your actual values
+
+database:
+  host: YOUR_DB_HOST
+  port: 3306
+  user: YOUR_DB_USER
+  password: YOUR_DB_PASSWORD
+  database: YOUR_DB_NAME
+  charset: utf8mb4
+
+llm:
+  model: qwen3-next
+  api_key: "YOUR_LLM_API_KEY"
+  base_url: http://YOUR_LLM_HOST:PORT/v1
+  max_tokens: 20000
+  timeout: 60
+  max_retries: 3
+  retry_delay: 1.0
+  temperature: 0.01
+  top_p: 0.01
+  extra_body:
+    chat_template_kwargs:
+      enable_thinking: false
+
+schema:
+  table_names: [your_table_name]
+
+build:
+  output_dir: ./output
+  iterations: 50
+  rule_rounds: 4
+  skip_rule: false
+  skip_llm: false
+  require_db: true
+  require_llm: true
+  enable_query_gate: true
+  export_format: all
+
+runtime:
+  valid_path: ./output/your_table/valid.jsonl
+  review_queue: ./output/your_table/review_queue.jsonl
+  mode: interactive
+  num_tests: 10
+  num_queries: 20
+  batch_size: 5
+  max_rounds: 3
+  table_top_k: 3      # TopK candidate tables to recall per query
+  api_top_k: 5        # TopK candidate APIs to recall per table shard
+
+review:
+  port: 7860
+  share: false
+  language: zh   # UI language: "en" (English, default) or "zh" (Chinese)
+  invalid_path: ./output/your_table/invalid.jsonl
+  valid_path: ./output/your_table/valid.jsonl
+  recorrect_path: ./output/your_table/recorrect.jsonl
+  review_queue: ./output/your_table/review_queue.jsonl
+  auth_users: []  # whitelist; empty or not set = no auth
+
+logging:
+  log_dir: ./logs
+  level: INFO

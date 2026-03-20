@@ -1,3 +1,4 @@
+from __future__ import annotations
 """
 Query生成器：将SQL转换为自然语言查询
 """

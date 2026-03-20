@@ -1,3 +1,6 @@
+# Config (contains sensitive credentials)
+config.yaml
+
 # Output data
 output/
 
@@ -26,3 +29,6 @@ Thumbs.db
 # Virtual env
 .venv/
 venv/
+
+# Test artifacts
+test_runtime_results.json

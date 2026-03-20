@@ -161,10 +161,12 @@ def _generate_queries_from_fields(
 字段描述：
 {json.dumps(descs, ensure_ascii=False)}
 要求：
-- 查询要包含这些字段
+- 查询要包含这些字段，并且要在 WHERE 条件或 GROUP BY 中使用它们
 - 查询要有明确的统计或筛选目的
 - 查询要简单组合，不涉及深度关联和复杂计算
-- 要求是带具体值的查询，而不是模糊或笼统描述
+- 要求是带具体值的查询（如具体的名称、类别），而不是模糊或笼统描述
+- 不要使用具体的数字ID或编号，而是使用有业务含义的筛选值（如部门名称、状态描述等）
+- 故意使用字段描述中的近义词或口语化表达，测试字段描述的辨识度
 - 直接输出一个自然语言查询字符串，不要输出其他内容
 """
         try:
@@ -240,19 +242,27 @@ def _validate_with_llm(
     # Truncate long descriptions for prompt
     short_descs = {f: d[:50] for f, d in all_descs.items()}
 
-    prompt = f"""你是一个数据验证专家。
+    prompt = f"""你是一个严格的数据验证专家。请仔细验证 SQL 是否正确实现了用户查询意图。
+
 用户查询: {user_query}
 生成的 SQL: {sql}
 当前表字段描述: {json.dumps(short_descs, ensure_ascii=False)}
 
-请诊断类型，仅从以下枚举中选择，并简要说明原因。
-    - "CORRECT": 完全正确，SQL 正确实现了用户查询意图
-    - "PARTIAL": 部分正确（如字段匹配但逻辑不完整）
-    - "INCORRECT": 用户查询涉及的内容超出当前表的能力范围、使用了错误的字段或者SQL和用户意图不关联
+请严格检查以下方面：
+1. SQL中使用的字段是否正确对应了用户查询意图中的语义概念？
+   - 例如：用户问"部门"，SQL是否用了正确的部门字段（而不是误用了其他字段）？
+2. WHERE条件中的值是否合理？是否可能因为字段描述不清导致用了错误的筛选值？
+3. SQL的SELECT、WHERE、GROUP BY等子句是否完整覆盖了用户意图？
+4. 字段描述是否有歧义或不够精确，可能导致误用？
+
+诊断类型（严格判定）：
+- "CORRECT": SQL 完全正确且选用的字段无歧义
+- "PARTIAL": SQL 大致正确但字段选择可能有歧义（如存在多个相似字段但不确定选了对的）
+- "INCORRECT": 字段选择明显错误、逻辑错误、或查询意图超出表能力
 
 输出 JSON 格式:
 {{
-    "reason": "原因",
+    "reason": "原因，特别指出哪个字段描述可能有问题",
     "type": "以上英文枚举值"
 }}
 """
@@ -338,11 +348,12 @@ def _fix_fields_from_sql(
     table_name: str,
     schema_json: dict,
     error_contexts: list[dict],
-) -> dict:
+) -> tuple[dict, list[dict]]:
     """
     Parse fields out of a SQL, then refine the description for each
     field that exists in the schema.
-    Returns the mutated schema_json.
+    Returns (mutated schema_json, list of change dicts).
+    Each change dict: {"field": name, "old_desc": ..., "new_desc": ...}
     """
     fields_to_fix = extract_fields_from_sql(sql)
     logger.info("[Auto-Fix] SQL extracted fields: %s", fields_to_fix)
@@ -351,6 +362,7 @@ def _fix_fields_from_sql(
     table = tables.get(table_name, {})
     field_defs = table.get("fields", {})
 
+    changes: list[dict] = []
     for f in fields_to_fix:
         # Skip table name itself
         if f.lower() == table_name.lower():
@@ -359,11 +371,109 @@ def _fix_fields_from_sql(
             continue
 
         logger.info("[Auto-Fix] Refining field: %s", f)
+        old_desc = field_defs[f].get("comment", "")
         new_desc = _refine_field_desc(table_name, f, schema_json, error_contexts)
-        field_defs[f]["comment"] = new_desc
-        logger.info("[Auto-Fix] Field [%s] => %s", f, new_desc)
+        if new_desc and new_desc != old_desc:
+            field_defs[f]["comment"] = new_desc
+            changes.append({"field": f, "old_desc": old_desc, "new_desc": new_desc})
+            logger.info("[Auto-Fix] Field [%s]: '%s' => '%s'", f, old_desc[:40], new_desc[:40])
+        else:
+            logger.info("[Auto-Fix] Field [%s] unchanged", f)
 
-    return schema_json
+    return schema_json, changes
+
+
+# ---------------------------------------------------------------------------
+# On-policy query regeneration (after fixing descriptions)
+# ---------------------------------------------------------------------------
+
+def _regenerate_query_on_policy(
+    table_name: str,
+    schema_json: dict,
+    field_usage_count: dict[str, int],
+    old_query: str,
+    error_info: dict,
+) -> str:
+    """
+    After fixing field descriptions, regenerate a NEW query using updated
+    descriptions (on-policy). This avoids repeatedly testing the same
+    broken query that uses non-existent filter values.
+    """
+    all_descs = _get_all_field_descs(schema_json, table_name)
+    # Pick fields from the failed SQL to stay focused
+    failed_fields = extract_fields_from_sql(error_info.get("sql", ""))
+    target_descs = {f: all_descs[f] for f in failed_fields if f in all_descs}
+    if not target_descs:
+        # Fallback: pick random fields
+        keys = list(all_descs.keys())
+        chosen = random.sample(keys, min(2, len(keys)))
+        target_descs = {f: all_descs[f] for f in chosen}
+
+    prompt = f"""你是一个数据分析专家。根据以下最新的字段描述，为表 {table_name} 生成一个新的自然语言查询。
+
+最新字段描述：
+{json.dumps(target_descs, ensure_ascii=False)}
+
+上一轮失败的查询（请不要重复它）: {old_query}
+失败原因: {error_info.get('reason', '')[:100]}
+
+要求：
+- 生成一个全新的查询，不要复用上一轮的筛选值
+- 查询要使用真实可能存在的筛选值（根据字段描述推断）
+- 查询要有明确的统计或筛选目的
+- 不要使用具体的数字ID或编号
+- 直接输出一个自然语言查询字符串，不要输出其他内容
+"""
+    try:
+        text = call_llm(prompt).strip().strip('"').strip("'")
+        if text:
+            return text
+    except Exception:
+        pass
+    return old_query  # Fallback: return old query if generation fails
+
+
+def _regenerate_single_field_query(
+    table_name: str,
+    field_name: str,
+    schema_json: dict,
+    old_query: str,
+    error_info: dict,
+) -> str:
+    """
+    On-policy query regeneration for single-field auto-fix.
+    Uses updated field description to generate a new query.
+    """
+    all_descs = _get_all_field_descs(schema_json, table_name)
+    other_fields = [f for f in all_descs if f != field_name]
+    partner = random.choice(other_fields) if other_fields else None
+    target_descs = {field_name: all_descs.get(field_name, "")}
+    if partner:
+        target_descs[partner] = all_descs.get(partner, "")
+
+    prompt = f"""你是一个数据分析专家。根据以下最新的字段描述，为表 {table_name} 生成一个新的自然语言查询。
+
+最新字段描述：
+{json.dumps(target_descs, ensure_ascii=False)}
+
+上一轮失败的查询（请不要重复它）: {old_query}
+失败原因: {error_info.get('reason', '')[:100]}
+
+要求：
+- 查询必须包含字段 {field_name}
+- 生成一个全新的查询，不要复用上一轮的筛选值
+- 查询要使用真实可能存在的筛选值（根据字段描述推断）
+- 查询要有明确的统计或筛选目的
+- 不要使用具体的数字ID或编号
+- 直接输出一个自然语言查询字符串，不要输出其他内容
+"""
+    try:
+        text = call_llm(prompt).strip().strip('"').strip("'")
+        if text:
+            return text
+    except Exception:
+        pass
+    return old_query
 
 
 # ---------------------------------------------------------------------------
@@ -376,6 +486,7 @@ def _exploration_loop(
     field_usage_count: dict[str, int],
     num_queries: int = 8,
     progress_callback: Optional[Callable] = None,
+    log_callback: Optional[Callable[[str], None]] = None,
 ) -> tuple[dict, list[str]]:
     """
     One round of the exploration loop:
@@ -384,12 +495,17 @@ def _exploration_loop(
       3. If INCORRECT/PARTIAL: extract SQL fields → targeted desc fix
     Returns (mutated schema_json, progress_log_lines).
     """
+    def _log(msg: str):
+        progress_log.append(msg)
+        if log_callback:
+            log_callback(msg)
+
     progress_log: list[str] = []
     queries = _generate_queries_from_fields(
         table_name, schema_json, field_usage_count, num_queries=num_queries,
     )
     logger.info("[Auto-Fix] Generated %d exploration queries", len(queries))
-    progress_log.append(f"生成了 {len(queries)} 条探索查询")
+    _log(f"生成了 {len(queries)} 条探索查询")
 
     total = len(queries)
     for q_idx, query in enumerate(queries):
@@ -400,48 +516,105 @@ def _exploration_loop(
         error_contexts: list[dict] = []
         error_info: Optional[dict] = None
         final_status = "SKIP"
+        current_query = query  # on-policy: may regenerate after fix
 
-        for attempt in range(2):
-            # Generate SQL
-            sql = _generate_sql_from_query(query, table_name, schema_json, error_info)
-            if not sql:
-                logger.warning("[Auto-Fix] SQL generation returned None for: %s", query[:50])
-                progress_log.append(f"{prefix} ❌ SQL生成失败: {query[:60]}")
-                final_status = "GEN_FAIL"
-                break
+        try:
+            for attempt in range(2):
+                # Generate SQL (using latest schema descriptions)
+                sql = _generate_sql_from_query(current_query, table_name, schema_json, error_info)
+                if not sql:
+                    logger.warning("[Auto-Fix] SQL generation returned None for: %s", current_query[:50])
+                    _log(f"{prefix} ❌ SQL生成失败: {current_query[:60]}")
+                    final_status = "GEN_FAIL"
+                    break
 
-            # Execute SQL
-            exec_result = execute_sql(None, sql)
-            if exec_result.get("status") != "success":
-                err_msg = exec_result.get("error", "SQL execution failed")
-                error_info = {
-                    "intent": query,
-                    "sql": sql,
-                    "reason": err_msg,
-                    "type": "INCORRECT",
-                }
+                # Execute SQL
+                exec_result = execute_sql(None, sql)
+                if exec_result.get("status") != "success":
+                    err_msg = exec_result.get("error", "SQL execution failed")
+                    error_info = {
+                        "intent": current_query,
+                        "sql": sql,
+                        "reason": err_msg,
+                        "type": "EXEC_FAIL",
+                    }
+                    error_contexts.append(error_info)
+                    _log(f"{prefix} ⚠️ SQL执行失败(attempt {attempt+1}): {err_msg[:80]}")
+
+                    # Distinguish hallucinated column names vs pure syntax errors.
+                    # If error mentions unknown column / field, it's likely caused
+                    # by ambiguous descriptions → fix descriptions.
+                    # Otherwise it's a pure SQL syntax problem → just retry SQL.
+                    err_lower = err_msg.lower()
+                    is_column_error = any(kw in err_lower for kw in [
+                        "unknown column", "no such column", "doesn't exist",
+                        "field list", "unknown field", "column not found",
+                        "no column", "不存在", "未知列",
+                    ])
+                    if is_column_error:
+                        _log(f"{prefix} 🔧 幻觉字段名，修正相关字段描述")
+                        schema_json, changes = _fix_fields_from_sql(sql, table_name, schema_json, error_contexts)
+                        for ch in changes:
+                            _log(f"{prefix}   📝 [{ch['field']}]: \"{ch['old_desc'][:40]}\" → \"{ch['new_desc'][:40]}\"")
+                        current_query = _regenerate_query_on_policy(
+                            table_name, schema_json, field_usage_count, current_query, error_info
+                        )
+                        _log(f"{prefix} 🔄 重新生成查询: {current_query[:60]}")
+                    else:
+                        _log(f"{prefix} 🔄 SQL语法问题，将错误信息传递给下一次SQL生成")
+                    final_status = "EXEC_FAIL"
+                    continue
+
+                # Additional check: if SQL returns 0 rows, likely the query
+                # used invalid filter values (not a description problem).
+                row_count = exec_result.get("row_count", 0)
+                if row_count == 0:
+                    logger.info("[Auto-Fix] SQL returned 0 rows for: %s", current_query[:50])
+                    error_info = {
+                        "intent": current_query,
+                        "sql": sql,
+                        "reason": "SQL executed successfully but returned 0 rows — the query may use non-existent filter values, or field descriptions have wrong enum values",
+                        "type": "PARTIAL",
+                    }
+                    error_contexts.append(error_info)
+                    _log(f"{prefix} ⚠️ 0行结果(attempt {attempt+1}): {current_query[:50]}")
+                    # Fix descriptions AND regenerate query (on-policy)
+                    schema_json, changes = _fix_fields_from_sql(sql, table_name, schema_json, error_contexts)
+                    for ch in changes:
+                        _log(f"{prefix}   📝 [{ch['field']}]: \"{ch['old_desc'][:40]}\" → \"{ch['new_desc'][:40]}\"")
+                    current_query = _regenerate_query_on_policy(
+                        table_name, schema_json, field_usage_count, current_query, error_info
+                    )
+                    _log(f"{prefix} 🔄 重新生成查询: {current_query[:60]}")
+                    final_status = "ZERO_ROWS"
+                    continue
+
+                # Validate with LLM
+                v_type, v_reason = _validate_with_llm(current_query, sql, schema_json, table_name)
+                error_info = {"intent": current_query, "sql": sql, "reason": v_reason, "type": v_type}
                 error_contexts.append(error_info)
-                progress_log.append(f"{prefix} ⚠️ SQL执行失败(attempt {attempt+1}): {err_msg[:80]}")
-                schema_json = _fix_fields_from_sql(sql, table_name, schema_json, error_contexts)
-                final_status = "EXEC_FAIL"
-                continue
 
-            # Validate with LLM
-            v_type, v_reason = _validate_with_llm(query, sql, schema_json, table_name)
-            error_info = {"intent": query, "sql": sql, "reason": v_reason, "type": v_type}
-            error_contexts.append(error_info)
-
-            if v_type == "CORRECT":
-                logger.info("[Auto-Fix] Query OK: %s", query[:50])
-                progress_log.append(f"{prefix} ✅ CORRECT: {query[:60]}")
-                final_status = "CORRECT"
-                break
-            else:
-                logger.info("[Auto-Fix] %s for: %s — fixing fields", v_type, query[:50])
-                fixed_fields = extract_fields_from_sql(sql)
-                progress_log.append(f"{prefix} 🔧 {v_type}(attempt {attempt+1}): {query[:50]} → 修正字段: {fixed_fields}")
-                schema_json = _fix_fields_from_sql(sql, table_name, schema_json, error_contexts)
-                final_status = v_type
+                if v_type == "CORRECT":
+                    logger.info("[Auto-Fix] Query OK: %s", current_query[:50])
+                    _log(f"{prefix} ✅ CORRECT: {current_query[:60]}")
+                    final_status = "CORRECT"
+                    break
+                else:
+                    logger.info("[Auto-Fix] %s for: %s — fixing fields", v_type, current_query[:50])
+                    fixed_fields = extract_fields_from_sql(sql)
+                    _log(f"{prefix} 🔧 {v_type}(attempt {attempt+1}): {current_query[:50]} → 修正字段: {fixed_fields}")
+                    schema_json, changes = _fix_fields_from_sql(sql, table_name, schema_json, error_contexts)
+                    for ch in changes:
+                        _log(f"{prefix}   📝 [{ch['field']}]: \"{ch['old_desc'][:40]}\" → \"{ch['new_desc'][:40]}\"")
+                    # On-policy: regenerate query with updated descriptions
+                    current_query = _regenerate_query_on_policy(
+                        table_name, schema_json, field_usage_count, current_query, error_info
+                    )
+                    _log(f"{prefix} 🔄 重新生成查询: {current_query[:60]}")
+                    final_status = v_type
+        except Exception as e:
+            logger.warning("[Auto-Fix] Query processing failed (skipping): %s — %s", current_query[:50], str(e)[:100])
+            _log(f"{prefix} ⏭️ 跳过(异常): {str(e)[:80]}")
 
     return schema_json, progress_log
 
@@ -559,6 +732,7 @@ def auto_fix_all_fields(
     rounds: int = 1,
     queries_per_round: int = 8,
     progress_callback: Optional[Callable] = None,
+    log_callback: Optional[Callable[[str], None]] = None,
 ) -> dict:
     """
     Global auto-fix: run exploration loop for *rounds* iterations.
@@ -572,19 +746,25 @@ def auto_fix_all_fields(
         rounds: number of exploration iterations
         queries_per_round: how many queries to generate per round
         progress_callback: optional (current, total, label)
+        log_callback: optional callback(msg) called on every new log line
 
     Returns:
         The updated schema_json (also mutated in place).
     """
     all_progress: list[str] = []
 
+    def _log(msg: str):
+        all_progress.append(msg)
+        if log_callback:
+            log_callback(msg)
+
     # Phase 0: auto-prune obviously useless fields before exploration
     pruned, schema_json = auto_prune_useless_fields(table_name, schema_json)
     if pruned:
         logger.info("[Auto-Fix] Auto-pruned %d useless fields: %s", len(pruned), pruned)
-        all_progress.append(f"🗑️ 自动裁剪了 {len(pruned)} 个无用字段: {', '.join(pruned)}")
+        _log(f"🗑️ 自动裁剪了 {len(pruned)} 个无用字段: {', '.join(pruned)}")
     else:
-        all_progress.append("✅ 无需裁剪字段")
+        _log("✅ 无需裁剪字段")
 
     tables = schema_json.get("tables", {})
     table = tables.get(table_name, {})
@@ -595,13 +775,14 @@ def auto_fix_all_fields(
 
     for r in range(rounds):
         logger.info("[Auto-Fix] === Round %d/%d ===", r + 1, rounds)
-        all_progress.append(f"\n===== 第 {r+1}/{rounds} 轮 =====")
+        _log(f"\n===== 第 {r+1}/{rounds} 轮 =====")
         schema_json, round_log = _exploration_loop(
             table_name,
             schema_json,
             field_usage_count,
             num_queries=queries_per_round,
             progress_callback=progress_callback,
+            log_callback=log_callback,
         )
         all_progress.extend(round_log)
 
@@ -613,14 +794,23 @@ def auto_fix_single_field_in_schema(
     field_name: str,
     schema_json: dict,
     rounds: int = 3,
+    log_callback: Optional[Callable[[str], None]] = None,
 ) -> tuple[str, dict, list[str]]:
     """
     Focus on a single field: generate queries that involve it, run
     the explore-validate-fix cycle for N rounds.
 
+    Args:
+        log_callback: optional callback(msg) called on every new log line
+
     Returns (new_description, updated_schema_json, progress_log).
     """
     progress_log: list[str] = []
+
+    def _log(msg: str):
+        progress_log.append(msg)
+        if log_callback:
+            log_callback(msg)
     tables = schema_json.get("tables", {})
     table = tables.get(table_name, {})
     fields = table.get("fields", {})
@@ -631,7 +821,7 @@ def auto_fix_single_field_in_schema(
 
     for round_idx in range(rounds):
         logger.info("[Auto-Fix] Single-field round %d/%d for [%s]", round_idx + 1, rounds, field_name)
-        progress_log.append(f"\n--- 第 {round_idx+1}/{rounds} 轮 (字段: {field_name}) ---")
+        _log(f"\n--- 第 {round_idx+1}/{rounds} 轮 (字段: {field_name}) ---")
 
         # Pick 1-2 random neighbors to form queries with this field
         other_fields = [f for f in all_descs if f != field_name]
@@ -653,49 +843,108 @@ def auto_fix_single_field_in_schema(
         try:
             query = call_llm(prompt).strip().strip('"').strip("'")
         except Exception:
-            progress_log.append("❌ 查询生成失败")
+            _log("❌ 查询生成失败")
             continue
         if not query:
-            progress_log.append("❌ 查询生成返回空")
+            _log("❌ 查询生成返回空")
             continue
-        progress_log.append(f"🔍 生成查询: {query[:80]}")
+        _log(f"🔍 生成查询: {query[:80]}")
 
         error_contexts: list[dict] = []
         error_info: Optional[dict] = None
+        current_query = query  # on-policy: may regenerate after fix
 
-        for attempt in range(2):
-            sql = _generate_sql_from_query(query, table_name, schema_json, error_info)
-            if not sql:
-                break
+        try:
+            for attempt in range(2):
+                sql = _generate_sql_from_query(current_query, table_name, schema_json, error_info)
+                if not sql:
+                    _log(f"❌ SQL生成失败: {current_query[:60]}")
+                    break
 
-            exec_result = execute_sql(None, sql)
-            if exec_result.get("status") != "success":
-                err_msg = exec_result.get("error", "SQL execution failed")
-                error_info = {
-                    "intent": query,
-                    "sql": sql,
-                    "reason": err_msg,
-                    "type": "INCORRECT",
-                }
+                exec_result = execute_sql(None, sql)
+                if exec_result.get("status") != "success":
+                    err_msg = exec_result.get("error", "SQL execution failed")
+                    error_info = {
+                        "intent": current_query,
+                        "sql": sql,
+                        "reason": err_msg,
+                        "type": "EXEC_FAIL",
+                    }
+                    error_contexts.append(error_info)
+                    _log(f"⚠️ SQL执行失败(attempt {attempt+1}): {err_msg[:80]}")
+
+                    # Distinguish hallucinated column names vs pure syntax errors
+                    err_lower = err_msg.lower()
+                    is_column_error = any(kw in err_lower for kw in [
+                        "unknown column", "no such column", "doesn't exist",
+                        "field list", "unknown field", "column not found",
+                        "no column", "不存在", "未知列",
+                    ])
+                    if is_column_error:
+                        _log(f"🔧 幻觉字段名，修正字段描述")
+                        old_desc = finfo.get("comment", "")
+                        new_desc = _refine_field_desc(table_name, field_name, schema_json, error_contexts)
+                        if new_desc and new_desc != old_desc:
+                            finfo["comment"] = new_desc
+                            _log(f"  📝 [{field_name}]: \"{old_desc[:40]}\" → \"{new_desc[:40]}\"")
+                        current_query = _regenerate_single_field_query(
+                            table_name, field_name, schema_json, current_query, error_info
+                        )
+                        _log(f"🔄 重新生成查询: {current_query[:60]}")
+                    else:
+                        _log(f"🔄 SQL语法问题，将错误信息传递给下一次SQL生成")
+                    continue
+
+                # Check for 0-row result — likely the query used non-existent values
+                row_count = exec_result.get("row_count", 0)
+                if row_count == 0:
+                    error_info = {
+                        "intent": current_query,
+                        "sql": sql,
+                        "reason": "SQL executed OK but returned 0 rows — query may use non-existent filter values or field description has wrong examples",
+                        "type": "PARTIAL",
+                    }
+                    error_contexts.append(error_info)
+                    _log(f"⚠️ 0行结果: {current_query[:50]} → 可能使用了不存在的筛选值")
+                    old_desc = finfo.get("comment", "")
+                    new_desc = _refine_field_desc(table_name, field_name, schema_json, error_contexts)
+                    if new_desc and new_desc != old_desc:
+                        finfo["comment"] = new_desc
+                        _log(f"🔧 修正描述:")
+                        _log(f"  📝 [{field_name}]: \"{old_desc[:40]}\" → \"{new_desc[:40]}\"")
+                    else:
+                        _log(f"🔧 描述未变化，跳过")
+                    # On-policy: regenerate query with updated description
+                    current_query = _regenerate_single_field_query(
+                        table_name, field_name, schema_json, current_query, error_info
+                    )
+                    _log(f"🔄 重新生成查询: {current_query[:60]}")
+                    continue
+
+                v_type, v_reason = _validate_with_llm(current_query, sql, schema_json, table_name)
+                error_info = {"intent": current_query, "sql": sql, "reason": v_reason, "type": v_type}
                 error_contexts.append(error_info)
-                progress_log.append(f"⚠️ SQL执行失败: {err_msg[:80]}")
-                # Targeted fix
-                new_desc = _refine_field_desc(table_name, field_name, schema_json, error_contexts)
-                finfo["comment"] = new_desc
-                progress_log.append(f"🔧 修正描述 → {new_desc[:60]}")
-                continue
 
-            v_type, v_reason = _validate_with_llm(query, sql, schema_json, table_name)
-            error_info = {"intent": query, "sql": sql, "reason": v_reason, "type": v_type}
-            error_contexts.append(error_info)
-
-            if v_type == "CORRECT":
-                logger.info("[Auto-Fix] Single-field query OK: %s", query[:50])
-                progress_log.append(f"✅ CORRECT: {query[:60]}")
-                break
-            else:
-                new_desc = _refine_field_desc(table_name, field_name, schema_json, error_contexts)
-                finfo["comment"] = new_desc
-                progress_log.append(f"🔧 {v_type}: 修正描述 → {new_desc[:60]}")
+                if v_type == "CORRECT":
+                    logger.info("[Auto-Fix] Single-field query OK: %s", current_query[:50])
+                    _log(f"✅ CORRECT: {current_query[:60]}")
+                    break
+                else:
+                    old_desc = finfo.get("comment", "")
+                    new_desc = _refine_field_desc(table_name, field_name, schema_json, error_contexts)
+                    if new_desc and new_desc != old_desc:
+                        finfo["comment"] = new_desc
+                        _log(f"🔧 {v_type}: 修正描述:")
+                        _log(f"  📝 [{field_name}]: \"{old_desc[:40]}\" → \"{new_desc[:40]}\"")
+                    else:
+                        _log(f"🔧 {v_type}: 描述未变化，跳过")
+                    # On-policy: regenerate query with updated description
+                    current_query = _regenerate_single_field_query(
+                        table_name, field_name, schema_json, current_query, error_info
+                    )
+                    _log(f"🔄 重新生成查询: {current_query[:60]}")
+        except Exception as e:
+            logger.warning("[Auto-Fix] Single-field query failed (skipping): %s — %s", current_query[:50], str(e)[:100])
+            _log(f"⏭️ 跳过(异常): {str(e)[:80]}")
 
     return finfo.get("comment", current_desc), schema_json, progress_log

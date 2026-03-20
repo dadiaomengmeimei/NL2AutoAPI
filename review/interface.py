@@ -1873,65 +1873,142 @@ def create_interface(self):
 
             def _run_global_autofix(rounds_str):
                 if not self._lock_autofix.acquire(blocking=False):
-                    return gr.update(), t("msg_autofix_running"), "", gr.update(), gr.update()
+                    yield gr.update(), t("msg_autofix_running"), "", gr.update(), gr.update()
+                    return
                 try:
                     rounds = max(1, min(10, int(rounds_str or 1)))
                     path = self._schema_path
                     if not os.path.exists(path):
-                        return "{}", t("msg_schema_not_found"), "", gr.update(), gr.update()
-                    
+                        yield "{}", t("msg_schema_not_found"), "", gr.update(), gr.update()
+                        return
+
                     with open(path, "r", encoding="utf8") as f:
                         data = json.load(f)
-                    
+
                     table_name = self._infer_table_name()
                     old_data_str = json.dumps(data, ensure_ascii=False)
-                    
-                    # Run exploration-loop auto-fix (returns progress log)
-                    data, progress_log = auto_fix_all_fields(table_name, data, rounds=rounds)
-                    
+
+                    # Use threading + queue for real-time log streaming
+                    import threading, queue
+                    log_queue = queue.Queue()
+                    live_lines = []
+                    result_holder = [None, None]  # [data, progress_log]
+
+                    def _worker():
+                        d, plog = auto_fix_all_fields(
+                            table_name, data, rounds=rounds,
+                            log_callback=lambda msg: log_queue.put(msg),
+                        )
+                        result_holder[0] = d
+                        result_holder[1] = plog
+                        log_queue.put(None)  # sentinel
+
+                    worker = threading.Thread(target=_worker, daemon=True)
+                    worker.start()
+
+                    # Stream logs to UI in real-time
+                    while True:
+                        try:
+                            msg = log_queue.get(timeout=0.5)
+                        except queue.Empty:
+                            # Yield current state to keep UI responsive
+                            if live_lines:
+                                yield gr.update(), t("msg_autofix_running"), "\n".join(live_lines), gr.update(), gr.update()
+                            continue
+                        if msg is None:
+                            break
+                        live_lines.append(msg)
+                        yield gr.update(), t("msg_autofix_running"), "\n".join(live_lines), gr.update(), gr.update()
+
+                    worker.join(timeout=5)
+
+                    # Final result
+                    final_data = result_holder[0] if result_holder[0] is not None else data
+                    progress_log = result_holder[1] or live_lines
+
                     # Save
-                    self._version_mgr.log_operation("schema", "update", data, json.loads(old_data_str), {"source": "global_autofix", "rounds": rounds})
+                    self._version_mgr.log_operation("schema", "update", final_data, json.loads(old_data_str), {"source": "global_autofix", "rounds": rounds})
                     with open(path, "w", encoding="utf8") as f:
-                        json.dump(data, f, ensure_ascii=False, indent=2)
-                    
+                        json.dump(final_data, f, ensure_ascii=False, indent=2)
+
                     log_text = "\n".join(progress_log) if progress_log else t("msg_no_log")
-                    fs_upd, fd_upd = _refresh_field_dropdowns(data)
-                    return json.dumps(data, ensure_ascii=False, indent=2), t("msg_global_autofix_done", rounds=rounds), log_text, fs_upd, fd_upd
+                    fs_upd, fd_upd = _refresh_field_dropdowns(final_data)
+                    yield json.dumps(final_data, ensure_ascii=False, indent=2), t("msg_global_autofix_done", rounds=rounds), log_text, fs_upd, fd_upd
                 finally:
                     self._lock_autofix.release()
-            
+
             def _run_field_autofix(field_name, rounds_str):
                 if not self._lock_autofix.acquire(blocking=False):
-                    return gr.update(), t("msg_autofix_running"), "", gr.update(), gr.update()
+                    yield gr.update(), t("msg_autofix_running"), "", gr.update(), gr.update()
+                    return
                 try:
                     rounds = max(1, min(10, int(rounds_str or 3)))
                     field_name = (field_name or "").strip()
                     if not field_name:
-                        return "{}", t("msg_select_field"), "", gr.update(), gr.update()
-                    
+                        yield "{}", t("msg_select_field"), "", gr.update(), gr.update()
+                        return
+
                     path = self._schema_path
                     if not os.path.exists(path):
-                        return "{}", t("msg_schema_not_found"), "", gr.update(), gr.update()
-                    
+                        yield "{}", t("msg_schema_not_found"), "", gr.update(), gr.update()
+                        return
+
                     with open(path, "r", encoding="utf8") as f:
                         data = json.load(f)
-                    
+
                     table_name = self._infer_table_name()
                     old_data_str = json.dumps(data, ensure_ascii=False)
-                    
-                    new_desc, data, progress_log = auto_fix_single_field_in_schema(table_name, field_name, data, rounds=rounds)
-                    
-                    self._version_mgr.log_operation("schema", "update", data, json.loads(old_data_str),
+
+                    # Use threading + queue for real-time log streaming
+                    import threading, queue
+                    log_queue = queue.Queue()
+                    live_lines = []
+                    result_holder = [None, None, None]  # [new_desc, data, progress_log]
+
+                    def _worker():
+                        nd, d, plog = auto_fix_single_field_in_schema(
+                            table_name, field_name, data, rounds=rounds,
+                            log_callback=lambda msg: log_queue.put(msg),
+                        )
+                        result_holder[0] = nd
+                        result_holder[1] = d
+                        result_holder[2] = plog
+                        log_queue.put(None)  # sentinel
+
+                    worker = threading.Thread(target=_worker, daemon=True)
+                    worker.start()
+
+                    # Stream logs to UI in real-time
+                    while True:
+                        try:
+                            msg = log_queue.get(timeout=0.5)
+                        except queue.Empty:
+                            if live_lines:
+                                yield gr.update(), t("msg_autofix_running"), "\n".join(live_lines), gr.update(), gr.update()
+                            continue
+                        if msg is None:
+                            break
+                        live_lines.append(msg)
+                        yield gr.update(), t("msg_autofix_running"), "\n".join(live_lines), gr.update(), gr.update()
+
+                    worker.join(timeout=5)
+
+                    # Final result
+                    new_desc = result_holder[0] or ""
+                    final_data = result_holder[1] if result_holder[1] is not None else data
+                    progress_log = result_holder[2] or live_lines
+
+                    self._version_mgr.log_operation("schema", "update", final_data, json.loads(old_data_str),
                                                      {"source": "field_autofix", "field": field_name, "rounds": rounds})
                     with open(path, "w", encoding="utf8") as f:
-                        json.dump(data, f, ensure_ascii=False, indent=2)
-                    
+                        json.dump(final_data, f, ensure_ascii=False, indent=2)
+
                     log_text = "\n".join(progress_log) if progress_log else t("msg_no_log")
-                    fs_upd, fd_upd = _refresh_field_dropdowns(data)
-                    return json.dumps(data, ensure_ascii=False, indent=2), t("msg_field_autofix_done", field=field_name, desc=new_desc), log_text, fs_upd, fd_upd
+                    fs_upd, fd_upd = _refresh_field_dropdowns(final_data)
+                    yield json.dumps(final_data, ensure_ascii=False, indent=2), t("msg_field_autofix_done", field=field_name, desc=new_desc), log_text, fs_upd, fd_upd
                 finally:
                     self._lock_autofix.release()
-            
+
             def _generate_schema_from_db():
                 """从数据库生成 Schema JSON"""
                 table_name = self._infer_table_name()
