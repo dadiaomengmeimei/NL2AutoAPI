@@ -2732,9 +2732,21 @@ def create_interface(self):
                 header = t("binlog_table_header") + "\n|---|---|---|---|---|\n"
                 return header + "\n".join(lines)
             
+            def _load_restore_timestamps(dataset_name):
+                """Load available timestamps for the restore dropdown."""
+                ds = (dataset_name or "").strip()
+                if not ds:
+                    return gr.update(choices=[], value=None)
+                ts_list = self._version_mgr.get_timestamps(ds)
+                if not ts_list:
+                    return gr.update(choices=[t("msg_no_ops")], value=None)
+                return gr.update(choices=ts_list, value=ts_list[0] if ts_list else None)
+
             def _restore_dataset(dataset_name, target_ts):
                 ds = (dataset_name or "").strip()
-                ts = (target_ts or "").strip()
+                raw_ts = (target_ts or "").strip()
+                # Extract pure timestamp (strip "[op] (source)" label suffix)
+                ts = raw_ts.split("  [")[0].strip() if raw_ts else ""
                 if not ds or not ts:
                     return t("msg_restore_input_required")
                 
@@ -2775,14 +2787,24 @@ def create_interface(self):
             gr.Markdown(t("restore_title"))
             with gr.Row():
                 restore_dataset = gr.Dropdown(label=t("dataset_name_label"), choices=["valid", "invalid", "schema"], value="valid")
-                restore_ts = gr.Textbox(label=t("restore_ts_label"), placeholder="2026-03-18T10:00:00")
+                restore_ts = gr.Dropdown(label=t("restore_ts_label"), choices=[], value=None, allow_custom_value=True)
                 restore_btn = gr.Button(t("btn_restore"), variant="primary")
             restore_status = gr.Markdown("")
+            
+            # When restore dataset changes, refresh the timestamp dropdown
+            restore_dataset.change(_load_restore_timestamps, inputs=[restore_dataset], outputs=[restore_ts])
+            
+            # When restore dataset changes, refresh the timestamp dropdown
+            restore_dataset.change(_load_restore_timestamps, inputs=[restore_dataset], outputs=[restore_ts])
             
             version_refresh_btn.click(_get_version_summary, outputs=[version_summary])
             binlog_load_btn.click(_get_binlog_detail, inputs=[binlog_dataset], outputs=[binlog_detail])
             restore_btn.click(_restore_dataset, inputs=[restore_dataset, restore_ts], outputs=[restore_status])
             demo.load(_get_version_summary, outputs=[version_summary])
+            # Auto-load timestamps for the default dataset on page load
+            demo.load(_load_restore_timestamps, inputs=[restore_dataset], outputs=[restore_ts])
+            # Auto-load timestamps for the default dataset on page load
+            demo.load(_load_restore_timestamps, inputs=[restore_dataset], outputs=[restore_ts])
 
         with gr.Tab(t("tab_stats")):
             def get_stats():

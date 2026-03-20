@@ -36,7 +36,7 @@ def looks_like_total_count(query: str) -> bool:
     return any(p in (query or "") for p in patterns)
 
 
-def semantic_issue(query: str, sql: str, query_type: str) -> str | None:
+def semantic_issue(query: str, sql: str, query_type: str) -> Optional[str]:
     sql_norm = f" {(sql or '').lower()} "
     has_where_slot = " where " in sql_norm and ":" in sql_norm
     has_group_by = " group by " in sql_norm

@@ -237,8 +237,8 @@ _TRANSLATIONS: dict[str, dict[str, str]] = {
     "btn_view_log": {"zh": "查看日志", "en": "View Log"},
     "restore_title": {"zh": "### 按时间点恢复", "en": "### Restore by Timestamp"},
     "restore_ts_label": {
-        "zh": "恢复到时间点（ISO 格式）",
-        "en": "Restore to timestamp (ISO format)",
+        "zh": "选择恢复时间点",
+        "en": "Select restore point",
     },
     "btn_restore": {"zh": "⏪ 恢复", "en": "⏪ Restore"},
 

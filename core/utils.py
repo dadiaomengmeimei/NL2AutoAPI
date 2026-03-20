@@ -5,7 +5,7 @@ import json
 import os
 import re
 from datetime import datetime
-from typing import Any
+from typing import Any, Optional
 
 from core.logger import get_logger
 
@@ -327,7 +327,7 @@ def call_llm(prompt: str) -> str:
         raise
 
 
-def generate_api_name(table: str, slots: list[str], query_type: str, desc_hint: str | None = None) -> str:
+def generate_api_name(table: str, slots: list[str], query_type: str, desc_hint: Optional[str] = None) -> str:
     """根据table/slots/query_type生成API名称"""
     table_part = sanitize_filename(table).lower().replace('-', '_')
     query_part = query_type or 'query'

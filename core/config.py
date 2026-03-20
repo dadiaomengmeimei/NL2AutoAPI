@@ -83,6 +83,7 @@ class LLMConfig:
     retry_delay: float = field(default_factory=lambda: _env_float("LLM_RETRY_DELAY", 1.0))
     temperature: float = field(default_factory=lambda: _env_float("LLM_TEMPERATURE", 0.01))
     top_p: float = field(default_factory=lambda: _env_float("LLM_TOP_P", 0.8))
+    extra_body: dict = field(default_factory=dict)
 
 
 # 全局LLM配置实例
@@ -101,4 +102,5 @@ def get_llm_config() -> dict:
         "retry_delay": llm_config.retry_delay,
         "temperature": llm_config.temperature,
         "top_p": llm_config.top_p,
+        "extra_body": llm_config.extra_body,
     }

@@ -11,7 +11,7 @@ from schema.models import APISchema, RecallCandidate
 class APIRecaller:
     """API召回器"""
 
-    def _extract_info_subject(self, query: str) -> str | None:
+    def _extract_info_subject(self, query: str) -> Optional[str]:
         text = (query or "").strip()
         patterns = [
             r"查询([\u4e00-\u9fa5A-Za-z0-9_·]{1,30})的信息",

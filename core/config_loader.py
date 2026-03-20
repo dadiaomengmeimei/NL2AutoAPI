@@ -35,6 +35,7 @@ class LLMConfigFromFile:
     retry_delay: float = 1.0
     temperature: float = 0.01
     top_p: float = 0.8
+    extra_body: dict = field(default_factory=dict)
 
 
 @dataclass
@@ -166,6 +167,9 @@ class ConfigLoader:
         llm["retry_delay"] = float(os.getenv("LLM_RETRY_DELAY", llm.get("retry_delay", 1.0)))
         llm["temperature"] = float(os.getenv("LLM_TEMPERATURE", llm.get("temperature", 0.01)))
         llm["top_p"] = float(os.getenv("LLM_TOP_P", llm.get("top_p", 0.8)))
+        # extra_body is kept as-is from yaml (dict), no env override
+        if "extra_body" not in llm:
+            llm["extra_body"] = {}
         
         return config_dict
     
@@ -207,6 +211,7 @@ class ConfigLoader:
         llm_config.retry_delay = config.llm.retry_delay
         llm_config.temperature = config.llm.temperature
         llm_config.top_p = config.llm.top_p
+        llm_config.extra_body = config.llm.extra_body
     
     def update_pipeline_config(self):
         """更新全局流水线配置"""

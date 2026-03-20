@@ -105,7 +105,7 @@ def analyze_sql_modification(
 
     Returns:
         {
-            "reason_type": "column_ambiguity" | "sql_logic_error" | "value_mismatch" | "none",
+            "reason_type": "column_ambiguity" or "sql_logic_error" or "value_mismatch" or "none",
             "reason_detail": "...",
             "suggestions": [SchemaUpdateSuggestion, ...],
         }
@@ -192,7 +192,7 @@ def analyze_sql_modification(
 
 ## 输出JSON格式
 {{
-  "reason_type": "column_ambiguity" | "sql_logic_error" | "value_mismatch" | "none",
+    "reason_type": "column_ambiguity" or "sql_logic_error" or "value_mismatch" or "none",
   "reason_detail": "一句话说明修改原因",
   "suggestions": [
     {{

@@ -162,7 +162,7 @@ def _rag_generate_from_candidates(
     query: str,
     candidates: list,
     table_name: str,
-) -> dict | None:
+    ) -> Optional[dict]:
     """
     RAG-style generation: use top-k candidate APIs (input_schema, bound_sql,
     slot_mapping, description) as context to let LLM generate a new API + SQL

@@ -2,6 +2,7 @@
 填槽模块：从查询中提取参数值
 """
 import re
+from typing import Optional
 
 from core.llm import call_llm_json
 from core.logger import get_logger
@@ -13,7 +14,7 @@ logger = get_logger()
 class SlotFiller:
     """Slot填充器"""
 
-    def _extract_info_subject(self, query: str) -> str | None:
+    def _extract_info_subject(self, query: str) -> Optional[str]:
         text = (query or "").strip()
         if not text:
             return None
@@ -32,7 +33,7 @@ class SlotFiller:
                     return value
         return None
 
-    def _extract_dept_subject(self, query: str) -> str | None:
+    def _extract_dept_subject(self, query: str) -> Optional[str]:
         text = (query or "").strip()
         if not text:
             return None

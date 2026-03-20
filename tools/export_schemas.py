@@ -4,7 +4,7 @@
 
 import json
 import os
-from typing import Optional
+from typing import Optional, List
 
 from core.utils import load_jsonl, sanitize_filename
 
@@ -15,7 +15,7 @@ class SchemaExporter:
     def __init__(self, output_dir: str = "./output/schemas_by_table"):
         self.output_dir = output_dir
     
-    def export(self, valid_path: str, format: str = "json", allowed_tables: list[str] | None = None):
+def export(self, valid_path: str, format: str = "json", allowed_tables: Optional[List[str]] = None):
         """
         按表名导出Schema
         
@@ -228,7 +228,7 @@ class SchemaExporter:
         
         print(f"  [Export] 索引 -> {path}")
 
-    def export_records_by_table(self, valid_path: str, invalid_path: str, output_dir: str, allowed_tables: list[str] | None = None):
+def export_records_by_table(self, valid_path: str, invalid_path: str, output_dir: str, allowed_tables: Optional[List[str]] = None):
         """按表导出valid/invalid jsonl"""
         os.makedirs(output_dir, exist_ok=True)
 

@@ -70,7 +70,7 @@ class VersionManager:
         """
         Append an operation entry to the binlog.
 
-        op_type: "insert" | "update" | "delete"
+        op_type: "insert" or "update" or "delete"
         record:  the new / current record (None for delete)
         old_record: the previous record (for update / delete)
         meta:    arbitrary metadata (reviewer, source, etc.)
@@ -179,6 +179,34 @@ class VersionManager:
                 return i
         return None
 
+    # ------------------------------------------------ timestamps for restore
+    def get_timestamps(self, dataset_name: str) -> list[str]:
+        """Return a deduplicated list of timestamps from binlog, newest first.
+
+        Each timestamp is an ISO-8601 string suitable for the restore dropdown.
+        """
+        entries = self.read_binlog(dataset_name)
+        if not entries:
+            return []
+        seen: set[str] = set()
+        ts_list: list[str] = []
+        for e in reversed(entries):
+            ts = e.get("ts", "")
+            if ts and ts not in seen:
+                seen.add(ts)
+                op = e.get("op", "")
+                meta = e.get("meta", {})
+                source = meta.get("source", "")
+                # Build human-readable label: "2026-03-20T14:30:00 [insert] (source)"
+                label = ts
+                if op:
+                    label += f"  [{op}]"
+                if source:
+                    label += f"  ({source})"
+                ts_list.append(label)
+        return ts_list
+
+    # ------------------------------------------------ summary / stats
     # ------------------------------------------------ summary / stats
     def get_summary(self, dataset_name: str) -> dict:
         """Return a human-readable summary of the version history."""

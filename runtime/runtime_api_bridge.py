@@ -2,6 +2,7 @@ import json
 import os
 import threading
 from datetime import datetime
+from typing import Optional
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse, parse_qs
 
@@ -147,8 +148,8 @@ def start_runtime_api_bridge(
     output_dir: str = ".",
     table_name: str = "base_staff",
     table_desc: str = "",
-    schema_path: str | None = None,
-    recorrect_path: str | None = None,
+    schema_path: Optional[str] = None,
+    recorrect_path: Optional[str] = None,
     top_k: int = 5,
 ):
     global _SERVER, _SERVER_THREAD

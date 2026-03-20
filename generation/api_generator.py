@@ -2,6 +2,7 @@
 API Schema生成器
 """
 import re
+from typing import Optional
 from core.llm import call_llm_json
 from core.utils import extract_slots
 from generation.query_types import QUERY_TYPES
@@ -20,7 +21,7 @@ class APIGenerator:
         query: str,
         query_type: str,
         ensure_unique: bool = True
-    ) -> APISchema | None:
+    ) -> Optional[APISchema]:
         """
         生成API Schema
         
@@ -140,7 +141,7 @@ SQL 中的 slot 参数: {slots}
             source="generated"
         )
 
-    def _generate_api_name(self, table: str, slots: list[str], query_type: str, desc_hint: str | None = None) -> str:
+    def _generate_api_name(self, table: str, slots: list[str], query_type: str, desc_hint: Optional[str] = None) -> str:
         """兼容旧测试的API命名生成器"""
         # 简化命名规则
         name_base = table
@@ -179,7 +180,7 @@ SQL 中的 slot 参数: {slots}
         sql: str,
         table_name: str,
         description: str = ""
-    ) -> APISchema | None:
+    ) -> Optional[APISchema]:
         """
         从运行时场景生成API Schema（用于纠错）
         

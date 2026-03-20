@@ -63,6 +63,9 @@ def call_llm(prompt: str) -> str:
         "top_p": llm_config.top_p,
         "max_tokens": llm_config.max_tokens,
     }
+    # Merge extra_body (e.g. chat_template_kwargs) into payload
+    if llm_config.extra_body:
+        payload.update(llm_config.extra_body)
 
     last_exc = None
     for attempt in range(llm_config.max_retries):
