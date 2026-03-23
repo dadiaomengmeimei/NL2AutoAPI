@@ -115,8 +115,30 @@ def main():
             json.dump(inferred_schema, f, ensure_ascii=False, indent=2)
         print(f"自动构建Schema完成: {schema_path}")
 
+        # Also write per-table schema files: output/<table>/schema.json
+        for tbl_name, tbl_data in inferred_schema.get("tables", {}).items():
+            per_table_path = os.path.join(args.output_dir, tbl_name, "schema.json")
+            os.makedirs(os.path.dirname(per_table_path), exist_ok=True)
+            single = {"db_id": inferred_schema.get("db_id", "default_db"), "tables": {tbl_name: tbl_data}}
+            with open(per_table_path, "w", encoding="utf-8") as f:
+                json.dump(single, f, ensure_ascii=False, indent=2)
+            print(f"  Per-table schema: {per_table_path}")
+
     pipeline_config.schema_file = schema_path
-    
+
+    # Ensure per-table schema files exist (even when --schema is provided externally)
+    with open(schema_path, "r", encoding="utf-8") as f:
+        raw_schema = json.load(f)
+    raw_tables = raw_schema.get("tables", {})
+    raw_db_id = raw_schema.get("db_id", "default_db")
+    for tbl_name, tbl_data in raw_tables.items():
+        per_table_path = os.path.join(args.output_dir, tbl_name, "schema.json")
+        os.makedirs(os.path.dirname(per_table_path), exist_ok=True)
+        single = {"db_id": raw_db_id, "tables": {tbl_name: tbl_data}}
+        with open(per_table_path, "w", encoding="utf-8") as f:
+            json.dump(single, f, ensure_ascii=False, indent=2)
+        print(f"  Per-table schema: {per_table_path}")
+
     # 加载schema
     print(f"\n{'='*60}")
     print("🚀 NL2AutoAPI 事前构建启动")
@@ -179,6 +201,23 @@ def main():
     for fmt in formats:
         print(f"\n导出格式: {fmt}")
         exporter.export(valid_path, fmt, allowed_tables=table_names)
+
+    # Update per-table schema files with latest content (overwrite to sync any changes)
+    print(f"\n同步 per-table schema 独立文件")
+    with open(schema_path, "r", encoding="utf-8") as f:
+        latest_schema = json.load(f)
+    latest_db_id = latest_schema.get("db_id", "default_db")
+    for tbl_name in table_names:
+        per_table_path = os.path.join(args.output_dir, tbl_name, "schema.json")
+        tbl_data = latest_schema.get("tables", {}).get(tbl_name)
+        if tbl_data:
+            single = {"db_id": latest_db_id, "tables": {tbl_name: tbl_data}}
+            os.makedirs(os.path.dirname(per_table_path), exist_ok=True)
+            with open(per_table_path, "w", encoding="utf-8") as f:
+                json.dump(single, f, ensure_ascii=False, indent=2)
+            print(f"  [Sync] {per_table_path}")
+        else:
+            print(f"  [Skip] {tbl_name} not found in schema")
 
     # 可选清理输出目录中不需要的表目录（只保留真实表）
     for d in os.listdir(args.output_dir):

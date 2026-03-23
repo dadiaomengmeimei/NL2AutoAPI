@@ -815,10 +815,15 @@ def run_advanced_rule_pipeline(
 
         # Step 3: LLM 润色 + 执行验证
         table_context = {"table_name": table_name, "table_comment": table_comment}
-        
-        for prop in api_proposals:
+        total_proposals = len(api_proposals)
+        print(f"\n[Layer-A] {table_name}: 共 {total_proposals} 个候选 API proposal")
+
+        import time as _time
+        for prop_idx, prop in enumerate(api_proposals, 1):
+            _prop_start = _time.time()
             try:
                 query_type = prop.get("query_type", "unknown")
+                print(f"  [{prop_idx}/{total_proposals}] type={query_type} col={prop.get('col_name', 'N/A')}")
                 if _should_stop_layer_a_type(type_stats, query_type):
                     print(f"  [STOP] {query_type} 已达到停止探索条件")
                     continue
@@ -976,5 +981,9 @@ def run_advanced_rule_pipeline(
             except Exception as e:
                 print(f"  [ERROR] {e}")
                 continue
+            finally:
+                _prop_elapsed = _time.time() - _prop_start
+                if _prop_elapsed > 15:
+                    print(f"  ⚠️ [{prop_idx}/{total_proposals}] 耗时 {_prop_elapsed:.1f}s (>15s), 可能LLM响应慢")
 
     print("\n✅ 规则生成任务完成。")

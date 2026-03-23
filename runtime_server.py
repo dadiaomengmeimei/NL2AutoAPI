@@ -145,9 +145,11 @@ def main():
     
     submitter = ReviewSubmitter(args.review_queue)
 
-    # Read TopK settings from config (fallback to defaults)
-    from core.config_loader import load_config as _load_cfg
-    _cfg = _load_cfg()
+    # Load config and sync global db_config / llm_config / pipeline_config
+    from core.config_loader import get_config_loader
+    _loader = get_config_loader()
+    _cfg = _loader.load()
+    _loader.update_all_configs()
     table_top_k = getattr(_cfg.runtime, 'table_top_k', 3)
     api_top_k = getattr(_cfg.runtime, 'api_top_k', 5)
 

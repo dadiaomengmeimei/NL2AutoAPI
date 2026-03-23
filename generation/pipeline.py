@@ -86,6 +86,8 @@ class GenerationPipeline:
 
         for i in range(iterations):
             try:
+                import time as _time
+                _iter_start = _time.time()
                 logger.info('%s', '='*55)
                 logger.info('[%d/%d]', i+1, iterations)
 
@@ -107,7 +109,16 @@ class GenerationPipeline:
                     self.invalid_count += 1
                     if last_type:
                         type_stats[last_type]["fail"] += 1
-                    
+
+                # Log iteration timing for stall detection
+                _iter_elapsed = _time.time() - _iter_start
+                logger.info('[%d/%d] elapsed=%.1fs result=%s type=%s',
+                            i+1, iterations, _iter_elapsed,
+                            'VALID' if success else 'INVALID',
+                            last_type or 'unknown')
+                if _iter_elapsed > 30:
+                    logger.warning('[SLOW] iteration %d took %.1fs (>30s), possible LLM stall', i+1, _iter_elapsed)
+
             except Exception as e:
                 logger.exception('迭代异常')
                 self.invalid_count += 1

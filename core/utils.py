@@ -281,7 +281,10 @@ def extract_slots(sql: str) -> list[str]:
 def fill_sql_with_values(sql: str, slot_values: dict) -> str:
     """
     用实际值填充SQL中的slot占位符
-    
+
+    Handles slot_ prefix mismatch: if the param key has a "slot_" prefix but
+    the SQL placeholder does not (or vice versa), both variants are tried.
+
     Args:
         sql: 含slot的SQL
         slot_values: slot名到值的映射
@@ -291,8 +294,22 @@ def fill_sql_with_values(sql: str, slot_values: dict) -> str:
     """
     result = sql
     for slot, val in slot_values.items():
+        if val is None:
+            continue
         replacement = f"'{val}'" if isinstance(val, str) else str(val)
-        result = result.replace(f":{slot}", replacement)
+        # Try exact match first
+        if f":{slot}" in result:
+            result = result.replace(f":{slot}", replacement)
+        elif slot.startswith("slot_"):
+            # key = "slot_business_unit", try replacing ":business_unit" in SQL
+            raw = slot[len("slot_"):]
+            if f":{raw}" in result:
+                result = result.replace(f":{raw}", replacement)
+        else:
+            # key = "business_unit", try replacing ":slot_business_unit" in SQL
+            prefixed = f"slot_{slot}"
+            if f":{prefixed}" in result:
+                result = result.replace(f":{prefixed}", replacement)
     return result
 
 

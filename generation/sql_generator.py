@@ -54,7 +54,7 @@ class SQLGenerator:
         table_name: str,
         schema_subset: dict,
         query_type: str,
-        max_retries: int = 3
+        max_retries: int = 2
     ) -> Optional[str]:
         """
         生成SQL

@@ -89,6 +89,15 @@ class ReviewInterface:
         on_approve: Optional[Callable] = None,
         auth_users: Optional[list[str]] = None,
     ):
+        # Load config.yaml and sync to global db_config / llm_config / language
+        from core.config_loader import get_config_loader
+        from review.i18n import set_language
+        _loader = get_config_loader()
+        _app_cfg = _loader.load()
+        _loader.update_all_configs()
+        _language = getattr(_app_cfg.review, 'language', 'en') or 'en'
+        set_language(_language)
+
         self.invalid_path = invalid_path
         self.valid_path = valid_path
         self.recorrect_path = recorrect_path
@@ -130,23 +139,112 @@ class ReviewInterface:
         # List of {index, api_name, query, new_api_desc, reason}
         self._pending_cascade_updates: list = []
 
-    def _detect_schema_path(self) -> str:
-        """Auto-detect the initial schema JSON file path."""
+    def _per_table_schema_path(self, table_name: str) -> str:
+        """Return the per-table schema path: output/<table>/schema.json"""
         output_dir = os.path.dirname(self.valid_path) or "."
         root_output = os.path.dirname(output_dir) or "."
-        # Try common patterns
+        return os.path.join(root_output, table_name, "schema.json")
+
+    def _detect_schema_path(self, table_name: str = "") -> str:
+        """Auto-detect the schema JSON file path.
+
+        Strategy: always prefer per-table file. If shared file exists but
+        per-table does not, migrate on-the-fly and return per-table path.
+        """
+        table = table_name or self._infer_table_name()
+        output_dir = os.path.dirname(self.valid_path) or "."
+        root_output = os.path.dirname(output_dir) or "."
+
+        # 1. Per-table schema file (preferred)
+        if table:
+            per_table = os.path.join(root_output, table, "schema.json")
+            if os.path.exists(per_table):
+                return per_table
+            # Per-table file missing - try to migrate from shared file on-the-fly
+            self._migrate_shared_schema_to_per_table()
+            if os.path.exists(per_table):
+                return per_table
+
+        # 2. Legacy shared files (only when table name is unknown)
         for candidate in [
             os.path.join(root_output, "schema_from_db__smart_data__all_tables.json"),
             os.path.join(root_output, "schema_from_db.json"),
         ]:
             if os.path.exists(candidate):
                 return candidate
-        # Try glob
+        # 3. Try glob
         import glob
         matches = glob.glob(os.path.join(root_output, "schema_from_db*.json"))
         if matches:
             return matches[0]
+
+        # Default: per-table path (even if not yet existing)
+        if table:
+            return os.path.join(root_output, table, "schema.json")
         return os.path.join(root_output, "schema_from_db.json")
+
+    def _migrate_shared_schema_to_per_table(self):
+        """If a shared schema file exists, split into per-table files (one-time migration)."""
+        output_dir = os.path.dirname(self.valid_path) or "."
+        root_output = os.path.dirname(output_dir) or "."
+        for candidate in [
+            os.path.join(root_output, "schema_from_db__smart_data__all_tables.json"),
+            os.path.join(root_output, "schema_from_db.json"),
+        ]:
+            if not os.path.exists(candidate):
+                continue
+            with open(candidate, "r", encoding="utf8") as f:
+                data = json.load(f)
+            tables = data.get("tables", {})
+            if not tables:
+                continue
+            db_id = data.get("db_id", "default_db")
+            migrated = []
+            for tbl_name, tbl_data in tables.items():
+                per_table_path = self._per_table_schema_path(tbl_name)
+                if os.path.exists(per_table_path):
+                    continue
+                single = {"db_id": db_id, "tables": {tbl_name: tbl_data}}
+                os.makedirs(os.path.dirname(per_table_path), exist_ok=True)
+                with open(per_table_path, "w", encoding="utf8") as f:
+                    json.dump(single, f, ensure_ascii=False, indent=2)
+                migrated.append(tbl_name)
+            if migrated:
+                print(f"[Schema Migration] Split shared schema into per-table files: {migrated}")
+            break
+
+    def _sync_schema_to_shared(self, table_name: str, schema_data: dict):
+        """Sync per-table schema data back to the shared schema file for backward compatibility."""
+        output_dir = os.path.dirname(self.valid_path) or "."
+        root_output = os.path.dirname(output_dir) or "."
+        shared_candidates = [
+            os.path.join(root_output, "schema_from_db__smart_data__all_tables.json"),
+            os.path.join(root_output, "schema_from_db.json"),
+        ]
+        shared_path = None
+        shared_data = None
+        for c in shared_candidates:
+            if os.path.exists(c):
+                shared_path = c
+                try:
+                    with open(c, "r", encoding="utf8") as f:
+                        shared_data = json.load(f)
+                except Exception:
+                    shared_data = {}
+                break
+        if shared_path is None:
+            shared_path = os.path.join(root_output, "schema_from_db.json")
+            shared_data = {"db_id": schema_data.get("db_id", "default_db"), "tables": {}}
+        tbl_data = schema_data.get("tables", {})
+        if table_name and table_name in tbl_data:
+            shared_data.setdefault("tables", {})[table_name] = tbl_data[table_name]
+        elif tbl_data:
+            shared_data.setdefault("tables", {}).update(tbl_data)
+        try:
+            with open(shared_path, "w", encoding="utf8") as f:
+                json.dump(shared_data, f, ensure_ascii=False, indent=2)
+        except Exception as e:
+            print(f"[Schema Sync] Failed to sync to shared file {shared_path}: {e}")
 
     def _analyze_and_suggest_schema_updates(self, query: str, old_sql: str, new_sql: str, old_query: str = "") -> dict:
         """
@@ -274,6 +372,8 @@ class ReviewInterface:
         )
         with open(schema_path, "w", encoding="utf8") as f:
             json.dump(schema_json, f, ensure_ascii=False, indent=2)
+        # Sync to shared schema file for backward compatibility
+        self._sync_schema_to_shared(table_name, schema_json)
 
         # Apply cascade API updates (description, SQL, query)
         cascade_applied = 0
@@ -2005,6 +2105,9 @@ def create_interface(self):
                 
                 with open(path, "w", encoding="utf8") as f:
                     json.dump(data, f, ensure_ascii=False, indent=2)
+                # Sync to shared schema file for backward compatibility
+                table_name = self._infer_table_name()
+                self._sync_schema_to_shared(table_name, data)
                 fs_upd, fd_upd = _refresh_field_dropdowns(data)
                 return t("msg_schema_saved", path=path), fs_upd, fd_upd
             
@@ -2091,6 +2194,8 @@ def create_interface(self):
                     self._version_mgr.log_operation("schema", "update", final_data, json.loads(old_data_str), {"source": "global_autofix", "rounds": rounds})
                     with open(path, "w", encoding="utf8") as f:
                         json.dump(final_data, f, ensure_ascii=False, indent=2)
+                    # Sync to shared schema file
+                    self._sync_schema_to_shared(table_name, final_data)
 
                     log_text = "\n".join(progress_log) if progress_log else t("msg_no_log")
                     fs_upd, fd_upd = _refresh_field_dropdowns(final_data)
@@ -2163,6 +2268,8 @@ def create_interface(self):
                                                      {"source": "field_autofix", "field": field_name, "rounds": rounds})
                     with open(path, "w", encoding="utf8") as f:
                         json.dump(final_data, f, ensure_ascii=False, indent=2)
+                    # Sync to shared schema file
+                    self._sync_schema_to_shared(table_name, final_data)
 
                     log_text = "\n".join(progress_log) if progress_log else t("msg_no_log")
                     fs_upd, fd_upd = _refresh_field_dropdowns(final_data)
@@ -2183,6 +2290,8 @@ def create_interface(self):
                     os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
                     with open(path, "w", encoding="utf8") as f:
                         json.dump(schema_data, f, ensure_ascii=False, indent=2)
+                    # Sync to shared schema file for backward compatibility
+                    self._sync_schema_to_shared(table_name, schema_data)
                     self._version_mgr.log_operation("schema", "insert", schema_data, meta={"source": "db_generate"})
                     field_count = sum(len(t.get("fields", {})) for t in schema_data.get("tables", {}).values())
                     table_count = len(schema_data.get("tables", {}))
